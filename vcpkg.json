@@ -1,0 +1,21 @@
+{
+  "name": "sparkium",
+  "version-string": "0.0.1",
+  "description": "This road I'm taking is long and hard, but I must keep moving forward. No turning back.",
+  "dependencies": [
+    "eigen3",
+    "glfw3",
+    "glm",
+    "fmt",
+    "spdlog",
+    "vulkan-memory-allocator",
+    "glslang",
+    "gtest",
+    "imgui",
+    "mikktspace",
+    "tinyobjloader",
+    "stb",
+    "tinyfiledialogs",
+    "imguizmo"
+  ]
+}

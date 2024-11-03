@@ -1,0 +1,179 @@
+#version 460
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_ray_query : enable
+
+#include "entity_metadata.glsl"
+#include "material.glsl"
+#include "mesh_metadata.glsl"
+#include "ray_payload.glsl"
+#include "scene_settings.glsl"
+
+Material material;
+
+layout(set = 0, binding = 0, std140) uniform SceneSettingsUniform {
+  SceneSettings scene_settings;
+};
+
+layout(set = 0, binding = 1, std430) buffer MaterialBuffer {
+  Material materials[];
+};
+
+layout(set = 0, binding = 2, std430) buffer EntityMetadataBuffer {
+  EntityMetadata metadatas[];
+};
+
+layout(set = 1, binding = 0) uniform
+    accelerationStructureEXT scene;  // Built in attribute, don't need to define
+
+layout(set = 2, binding = 0, std430) buffer VertexBuffers {
+  float vertex_data[];
+}
+vertex_buffers[];
+
+layout(set = 2, binding = 1, std430) buffer IndexBuffers {
+  uint indices[];
+}
+index_buffers[];
+
+layout(set = 2, binding = 2) buffer AreaCDFBuffers {
+  float area_cdfs[];
+}
+mesh_cdf_buffers[];
+
+layout(set = 2, binding = 3, std430) buffer MeshMetadataBuffers {
+  MeshMetadata mesh_metadatas[];
+};
+
+layout(set = 2, binding = 4) uniform texture2D sampled_textures[];
+
+layout(set = 2, binding = 5) uniform sampler samplers[];
+
+#define ENVMAP_SET 3
+#include "envmap.glsl"
+
+layout(set = ENVMAP_SET, binding = 2, std430) buffer EnvmapCdfData {
+  float envmap_cdf[];
+};
+
+#include "random.glsl"
+
+layout(set = 4, binding = 0, rgba8) uniform image2D result_image;
+
+layout(set = 4,
+       binding = 1,
+       rgba32f) uniform image2D accumulated_radiance_image;
+
+layout(set = 4, binding = 2, r32f) uniform image2D accumulated_weight_image;
+
+layout(set = 4, binding = 3, rgba32f) uniform image2D raw_result_image;
+
+layout(location = 0) rayPayloadEXT RayPayload ray_payload;
+
+#include "hit_record.glsl"
+#include "shadow_ray.glsl"
+#include "trace_ray.glsl"
+
+vec4 SampleTextureLinear(uint texture_id, vec2 uv) {
+  return texture(sampler2D(sampled_textures[texture_id], samplers[0]), uv);
+}
+
+vec4 SampleTextureNearest(uint texture_id, vec2 uv) {
+  return texture(sampler2D(sampled_textures[texture_id], samplers[1]), uv);
+}
+
+vec3 EnvmapSample(vec3 direction) {
+  return texture(
+             sampler2D(sampled_textures[envmap_data.envmap_id], samplers[0]),
+             SampleEnvmapUV(direction))
+             .xyz *
+         envmap_data.scale;
+}
+
+Material GetMaterial(HitRecord hit_record) {
+  Material material = materials[hit_record.entity_id];
+  material.normal = normalize(mat3(hit_record.tangent, hit_record.bitangent,
+                                   hit_record.shading_normal) *
+                              ((material.normal - 0.5) * 2.0));
+  material.base_color *=
+      SampleTextureLinear(hit_record.albedo_texture_id, hit_record.tex_coord)
+          .xyz *
+      SampleTextureLinear(
+          hit_record.albedo_detail_texture_id,
+          hit_record.tex_coord * hit_record.detail_scale_offset.xy +
+              hit_record.detail_scale_offset.zw)
+          .xyz;
+  return material;
+}
+
+vec3 SampleRay(vec3 origin, vec3 direction) {
+  TraceRay(origin, direction);
+
+  if (ray_payload.t == -1.0) {
+    return EnvmapSample(direction);
+  }
+
+  hit_record = ComposeHitRecord(ray_payload, origin, direction);
+  material = GetMaterial(hit_record);
+  return material.base_color * -dot(hit_record.shading_normal, direction);
+}
+
+void main() {
+  for (uint i = 0; i < scene_settings.num_sample; i++) {
+    uint s = scene_settings.accumulated_sample + i;
+    InitRandomSeed(gl_LaunchIDEXT.x, gl_LaunchIDEXT.y, s);
+    const vec2 pixelCenter =
+        vec2(gl_LaunchIDEXT.xy) + vec2(RandomFloat(), RandomFloat());
+    const vec2 inUV = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+    vec2 d = inUV * 2.0 - 1.0;
+    mat4 proj = scene_settings.projection;
+    proj[0][0] = 1.0 / proj[0][0];
+    proj[1][1] = 1.0 / proj[1][1];
+
+    vec4 origin = scene_settings.inv_view[3];  // * vec4(0, 0, 0, 1);
+    vec4 target = vec4(d.x, -d.y, 0, 1) * proj;
+    vec4 direction = scene_settings.inv_view * vec4(normalize(target.xyz), 0);
+
+    float tmin = 0.001;
+    float tmax = 10000.0;
+
+    ray_payload.t = -1.0;
+    vec3 sampled_result = SampleRay(origin.xyz, direction.xyz);
+
+    sampled_result = clamp(sampled_result, -scene_settings.clamp_value,
+                           scene_settings.clamp_value);
+
+    vec4 accumulated_radiance = vec4(0.0);
+    float accumulated_weight = 0.0f;
+    accumulated_radiance =
+        imageLoad(accumulated_radiance_image, ivec2(gl_LaunchIDEXT.xy));
+    accumulated_weight =
+        imageLoad(accumulated_weight_image, ivec2(gl_LaunchIDEXT.xy)).r;
+
+    accumulated_radiance *= scene_settings.persistence;
+    accumulated_weight *= scene_settings.persistence;
+
+    if (isnan(accumulated_weight) || isnan(accumulated_radiance.r) ||
+        isnan(accumulated_radiance.g) || isnan(accumulated_radiance.b) ||
+        isnan(accumulated_radiance.a)) {
+      accumulated_weight = 0.0;
+      accumulated_radiance = vec4(0.0);
+    }
+
+    accumulated_radiance += vec4(sampled_result, 1.0);
+    accumulated_weight += 1.0f;
+
+    vec4 raw_result = accumulated_radiance / accumulated_weight;
+
+    vec4 resolved_result = pow(scene_settings.exposure * raw_result,
+                               vec4(1.0 / scene_settings.gamma));
+
+    imageStore(result_image, ivec2(gl_LaunchIDEXT.xy),
+               vec4(resolved_result.rgb, 1.0));
+    imageStore(accumulated_radiance_image, ivec2(gl_LaunchIDEXT.xy),
+               accumulated_radiance);
+    imageStore(accumulated_weight_image, ivec2(gl_LaunchIDEXT.xy),
+               vec4(accumulated_weight));
+    imageStore(raw_result_image, ivec2(gl_LaunchIDEXT.xy), raw_result);
+  }
+}
