@@ -4,9 +4,9 @@
 
 - This is repo for course project of Advanced Computer Graphics on 2024 Fall, instructed by Li Yi (弋力).
 - Team member: [Chenglin Liu](https://github.com/jk21lcl) (刘承林) and [He Li](https://github.com/lihe50hz) (李赫).
-- The repo is based on https://github.com/LazyJazzDev/Sparks.
+- The repo is based on https://github.com/Yao-class-graphics-studio/Sparkium-v2.
 
-## Preparing works (For Visual Studio 2022 on Windows with NVIDIA)
+## Preparing work (For Visual Studio 2022 on Windows with NVIDIA)
 
 1. Download VS2022 from https://visualstudio.microsoft.com/.
 
@@ -43,7 +43,7 @@ To be done.
     * [编译步骤](#编译步骤)
     * [注意事项](#注意事项)
   * [如何上手](#如何上手)
-<!-- TOC -->
+  <!-- TOC -->
 
 ## 简介
 
