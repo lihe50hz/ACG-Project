@@ -1,3 +1,37 @@
+# ACG-Rendering
+
+## Description
+
+- This is repo for course project of Advanced Computer Graphics on 2024 Fall, instructed by Li Yi (弋力).
+- Team member: [Chenglin Liu](https://github.com/jk21lcl) (刘承林) and [He Li](https://github.com/lihe50hz) (李赫).
+- The repo is based on https://github.com/LazyJazzDev/Sparks.
+
+## Preparing works (For Visual Studio 2022 on Windows with NVIDIA)
+
+1. Download VS2022 from https://visualstudio.microsoft.com/.
+
+2. Download CMake (at least version 3.22) from https://cmake.org/download/.
+
+3. Download Vulkan from https://cpp.studio/toolchain/vulkan/.
+
+4. Download CUDA from https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=WSL-Ubuntu&target_version=2.0&target_type=deb_local.
+
+4. Clone this repo by `git clone --recurse-submodules https://github.com/lihe50hz/ACG-Rendering.git` to a folder that has a short prefix. 
+
+   > Namely, your working directory path shouldn't be too long, since some code in this repo has a limitation of length 250 on the file path. 
+   >
+   > You'd better ensure the length of prefix is less than 150.
+
+5. Set the `CMake Toolchain File` in the `Project` -> `CMake settings`. (You may need specify this for your computer)
+
+6. Add the `"builtin-baseline": "7adc2e4d49e8d0efc07a369079faa6bc3dbb90f3"` in the `vcpkg.json` file in the root directory. (Already done)
+
+7. Try running the program.
+
+## Project Details
+
+To be done.
+
 # Sparkium Renderer (星火渲染器-开源版)
 
 <!-- TOC -->
