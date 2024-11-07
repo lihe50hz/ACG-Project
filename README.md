@@ -30,7 +30,123 @@
 
 ## Project Details
 
-To be done.
+- Base: 
+
+  1. Implement a path tracing algorithm that correctly handles diffuse and specular materials. (basic)
+
+     > He Li has implemented this.
+
+- Scene creation:  
+
+  1. Build a custom scene with aesthetic considerations, using geometry that you create from scratch or find online (ensure the source is credited). (basic, tidiness and attractiveness 1pt)
+
+     > Waiting for register.
+
+- Acceleration structure: 
+
+  1. Implement an acceleration structure such as BVH (Bounding Volume Hierarchy). This is not required for hardware-based renderers, as the acceleration structure is built-in in that case. (basic, Surface Area Heuristic or another advanced algorithm 2pts)
+
+     > This is not required for hardware.
+
+- Material: Create a (non-trivial) custom material. Options include:
+
+  1. Transmissive material (basic)
+
+     > Waiting for register.
+
+  2. Principled BSDF (2pts)
+
+     > Waiting for register.
+
+  3. Multi-layer material (2pts)
+
+     > Waiting for register.
+
+  4. Rendering of fur, hair, skin, etc. (2pts)
+
+     > Waiting for register.
+
+- Texture: Create your own (non-trivial) texture with proper texture mapping. Options include:
+
+  1. Color texture (basic)
+
+     > Waiting for register.
+
+  2. Normal map, height map, attribute map, or any functional texture mapping (1pt for each, up to 2pts)
+
+     > Waiting for register.
+
+  3. Implement an adaptive mipmap algorithm (2pts)
+
+     > Waiting for register.
+
+- Importance Sampling: 
+
+  1. Use more advanced sampling algorithms for path tracing. (Importance sampling with Russian Roulette, multiple importance sampling 2pts)
+
+     > Waiting for register.
+
+- Volumetric Rendering: Options include:
+
+  1. Homogeneous volume rendering with subsurface scattering and volumetric lighting (2pts)
+
+     > Waiting for register.
+
+  2. Channel-independent subsurface scattering (1pt)
+
+     > Waiting for register.
+
+  3. Inhomogeneous volume rendering (1pt)
+
+     > Waiting for register.
+
+  4. Volumetric emission (1pt)
+
+     > Waiting for register.
+
+  5. Volumetric alpha shadow (2pts)
+
+     > Waiting for register.
+
+- Special Visual Effects: Options include:
+
+  1. Motion blur, depth of field (basic)
+
+     > Waiting for register.
+
+  2. Alpha shadow (basic)
+
+     > Waiting for register.
+
+  3. Cartoon style rendering (2pts)
+
+     > Waiting for register.
+
+  4. Chromatic dispersion (2pts)
+
+     > Waiting for register.
+
+- Lighting: Options include:
+
+  1. Point light and area light (basic)
+
+     > Waiting for register.
+
+  2. Environment lighting with HDR, such as skybox (2pts)
+
+     > Waiting for register.
+
+- Anti-aliasing: Implement an anti-aliasing algorithm (basic)
+
+  > He Li has implemented this.
+
+- Simulation-based content creation: Up to 2pts
+
+  > Waiting for register.
+
+## Comment
+
+1. From He Li's roommate: The material part contains many dirty work (Principled BSDF), but this is necessary for an attractive scene. Custom material is just about parameter fine-tuning.
 
 # Sparkium Renderer (星火渲染器-开源版)
 
