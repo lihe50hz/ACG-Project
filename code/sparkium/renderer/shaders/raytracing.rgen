@@ -133,7 +133,7 @@ vec3 SampleHemisphere(vec3 normal) {
     return sampledDirection;
 }
 
-vec3 SampleBRDF(HitRecord hit_record, Material material, vec3 wo, out float pdf, out float cosine) {
+vec3 SampleBRDF(HitRecord hit_record, Material material, vec3 wo, out float pdf, out float cosine, out vec3 fr) {
     vec3 wi=vec3(0.0);
     if (material.type == MATERIAL_TYPE_LAMBERTIAN){
         // Sample a random hemisphere direction wi
@@ -144,6 +144,9 @@ vec3 SampleBRDF(HitRecord hit_record, Material material, vec3 wo, out float pdf,
 
         // The probability density function for Lambertian BRDF is constant (1 / 2¦Ð)
         pdf = 1.0 / PI / 2.0;
+        
+        // BRDF for specular material    
+        fr = material.base_color / PI;
     }
     if (material.type == MATERIAL_TYPE_SPECULAR){
         // Compute the perfect reflection direction
@@ -154,6 +157,9 @@ vec3 SampleBRDF(HitRecord hit_record, Material material, vec3 wo, out float pdf,
 
         // The probability density function for Specular BRDF is constant 1
         pdf = 1.0;
+        
+        // BRDF for specular material
+        fr = material.base_color;
     }
 
     return wi;
@@ -308,11 +314,11 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         vec3 wi; // New ray direction (outgoing)
         float pdf; // Probability density function for the new direction
         float cosine; // Cosine of the angle between the normal and the incoming direction
+        vec3 fr; // BRDF coefficient
 
         // Sample the material's BRDF
-        wi = SampleBRDF(hit_record,material, direction, pdf, cosine);
-        float this_coef = cosine / pdf / P_RR;
-        vec3 fr = material.base_color / PI;
+        wi = SampleBRDF(hit_record, material, direction, pdf, cosine, fr);
+        vec3 this_coef = fr * cosine / pdf / P_RR;
 
         // Update the ray origin and direction for the next bounce
         origin = hit_record.position;
@@ -320,7 +326,7 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
 
         // Accumulate radiance from the current bounce
         accumulated_color += accumulated_coef * color_direct;
-        accumulated_coef *= fr * this_coef;
+        accumulated_coef *= this_coef;
     }
     
     return accumulated_color;
