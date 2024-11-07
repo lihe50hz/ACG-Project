@@ -222,9 +222,25 @@ void Application::OnRender() {
       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT);
 
+  // 检查是否需要保存图片
+  if (save_image_) {
+    save_image_ = false;  // 重置标志位
+    VkExtent2D extent = core_->Swapchain()->Extent();
+    std::vector<uint8_t> image_data(extent.width * extent.height * 4);
+    raytracing_film_->result_image->FetchPixelData(
+        core_->GraphicsCommandPool(), core_->GraphicsQueue(),
+        VkRect2D{{0, 0}, {extent.width, extent.height}}, image_data.data(),
+        image_data.size());
+
+    // 使用stb_image_write保存图片到指定路径
+    stbi_write_png(save_image_path_.c_str(), extent.width, extent.height, 4,
+                   image_data.data(), extent.width * 4);
+  }
+
   core_->OutputFrame(frame_image_.get());
   //  core_->OutputFrame(film_->intensity_image.get());
   core_->EndFrame();
+
 }
 
 void Application::CreateFrameImage() {
@@ -570,6 +586,18 @@ ImVec2 Application::ImGuiSettingsWindow() {
       scene_->SetEntityMetadata(selected_instances_[0], metadata);
     }
   }
+
+  static char save_path[256] = "D:\\50hz\\Tsinghua\\Thrid_year-Autumn\\ACG\\project\\output_image.png";  // 默认路径
+
+  // 添加输入框来指定路径
+  ImGui::InputText("Save Path", save_path, IM_ARRAYSIZE(save_path));
+
+  // 整合保存按钮
+  if (ImGui::Button("Save Rendered Image")) {
+    save_image_ = true;  // 设置标志位，通知OnRender保存文件
+    save_image_path_ = std::string(save_path);  // 设置保存路径
+  }
+
   ImGui::End();
   return window_size;
 }
