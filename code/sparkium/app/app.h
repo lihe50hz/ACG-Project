@@ -66,7 +66,9 @@ class Application {
 
   std::unique_ptr<AppGuiRenderer> gui_renderer_;
 
-  bool output_raytracing_result_{false};
+  bool output_raytracing_result_{true};
+  bool save_image_{false};
+  std::string save_image_path_ = "output_image.png";
 
   int window_width_;
   int window_height_;
