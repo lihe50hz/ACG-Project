@@ -1,4 +1,4 @@
-# ACG-Rendering
+# ACG-Project
 
 ## Description
 
@@ -6,7 +6,7 @@
 - Team member: [Chenglin Liu](https://github.com/jk21lcl) (刘承林) and [He Li](https://github.com/lihe50hz) (李赫).
 - The repo is based on https://github.com/Yao-class-graphics-studio/Sparkium-v2.
 
-## Preparing work (For Visual Studio 2022 on Windows with NVIDIA)
+## Preparing work (For Visual Studio 2022 on Windows)
 
 1. Download VS2022 from https://visualstudio.microsoft.com/.
 
@@ -14,15 +14,15 @@
 
 3. Download Vulkan from https://cpp.studio/toolchain/vulkan/.
 
-4. Download CUDA from https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=WSL-Ubuntu&target_version=2.0&target_type=deb_local.
+4. Download CUDA from https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=WSL-Ubuntu&target_version=2.0&target_type=deb_local. *(ONLY FOR NVIDIA GPU)*
 
-4. Clone this repo by `git clone --recurse-submodules https://github.com/lihe50hz/ACG-Rendering.git` to a folder that has a short prefix. 
+4. Clone this repo by `git clone --recurse-submodules https://github.com/lihe50hz/ACG-Project.git` to a folder that has a short prefix. 
 
    > Namely, your working directory path shouldn't be too long, since some code in this repo has a limitation of length 250 on the file path. 
    >
    > You'd better ensure the length of prefix is less than 150.
 
-5. Set the `CMake Toolchain File` in the `Project` -> `CMake settings`. (You may need specify this for your computer)
+5. Set the `CMake Toolchain File` (namely `vcpkg.cmake`) in the `Project` -> `CMake settings`. (You may need specify this for your computer)
 
 6. Add the `"builtin-baseline": "7adc2e4d49e8d0efc07a369079faa6bc3dbb90f3"` in the `vcpkg.json` file in the root directory. (Already done)
 
