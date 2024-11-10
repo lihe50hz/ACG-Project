@@ -133,8 +133,11 @@ vec3 SampleHemisphere(vec3 normal) {
     return sampledDirection;
 }
 
-vec3 SampleBRDF(HitRecord hit_record, Material material, vec3 wo, out float pdf, out float cosine, out vec3 fr) {
+vec3 SampleBRDF(HitRecord hit_record, Material material, vec3 wo, out vec3 this_coef, float P_RR) {
     vec3 wi=vec3(0.0);
+    vec3 fr;
+    float pdf;
+    float cosine;
     if (material.type == MATERIAL_TYPE_LAMBERTIAN){
         // Sample a random hemisphere direction wi
         wi = SampleHemisphere(hit_record.shading_normal);
@@ -147,6 +150,9 @@ vec3 SampleBRDF(HitRecord hit_record, Material material, vec3 wo, out float pdf,
         
         // BRDF for specular material    
         fr = material.base_color / PI;
+
+        // Calculate this_coef
+        this_coef = fr * cosine / pdf / P_RR;
     }
     if (material.type == MATERIAL_TYPE_SPECULAR){
         // Compute the perfect reflection direction
@@ -160,7 +166,13 @@ vec3 SampleBRDF(HitRecord hit_record, Material material, vec3 wo, out float pdf,
         
         // BRDF for specular material
         fr = material.base_color;
+
+        // Calculate this_coef
+        this_coef = fr * cosine / pdf / P_RR;
     }
+    // if (material.type == MATERIAL_TYPE_PRINCIPLED){
+    //    while(1);
+    // }
 
     return wi;
 }
@@ -312,13 +324,10 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
 
         // Sample a new direction wi using the BRDF (Lambertian or any other model)
         vec3 wi; // New ray direction (outgoing)
-        float pdf; // Probability density function for the new direction
-        float cosine; // Cosine of the angle between the normal and the incoming direction
-        vec3 fr; // BRDF coefficient
+        vec3 this_coef; // Coefficient for shading
 
         // Sample the material's BRDF
-        wi = SampleBRDF(hit_record, material, direction, pdf, cosine, fr);
-        vec3 this_coef = fr * cosine / pdf / P_RR;
+        wi = SampleBRDF(hit_record, material, direction, this_coef, P_RR);
 
         // Update the ray origin and direction for the next bounce
         origin = hit_record.position;
