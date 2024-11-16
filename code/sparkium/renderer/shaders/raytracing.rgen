@@ -9,7 +9,7 @@
 #include "ray_payload.glsl"
 #include "scene_settings.glsl"
 
-Material material;
+// Material material;
 
 layout(set = 0, binding = 0, std140) uniform SceneSettingsUniform {
   SceneSettings scene_settings;
@@ -694,6 +694,7 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
                 }
                 wm = normalize(wi + wo);
                 type=0;
+                pdf = forwardPdf * pMetallic / scale;
             }
             else if (r <= pMetallic + pDiffuse){
                 while(length(wi) < 1e-3){
@@ -701,12 +702,14 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
                 }
                 wm = normalize(wi + wo);
                 type=1;
+                pdf = forwardPdf * pDiffuse;
             }
             else if (r <= pMetallic + pDiffuse + pSpecTrans){
                 while(length(wi) < 1e-3){
 				    wi = SampleDisneySpecTransmission(material, wo, thin, forwardPdf, hit_record.front_face, wm);
                 }
                 type=2;
+                pdf = forwardPdf * pSpecTrans / scale;
 			}
 			else{
                 while(length(wi) < 1e-3){
@@ -714,9 +717,10 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
                 }    
                 wm = normalize(wi + wo);
                 type=3;
+                pdf = forwardPdf * pClearcoat / scale;
 			}
             wi = normalize(TNB * wi);
-            pdf = forwardPdf;
+            
             break;
 	}
 
@@ -726,12 +730,12 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
 vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3 wi, float P_RR, float pdf, uint type) {
     switch (material.type){
 		case MATERIAL_TYPE_LAMBERTIAN:
-            return material.base_color / P_RR;
+            return material.base_color / PI / P_RR / pdf;
 			break;
 		case MATERIAL_TYPE_SPECULAR:
 			vec3 w_reflect = reflect(wo, hit_record.shading_normal);
             if (dot(w_reflect, wi) > 1.0 - 1e-3){
-                return material.base_color / P_RR;
+                return material.base_color / P_RR / pdf;
             }
             else
                 return vec3(0.0);
@@ -789,20 +793,27 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
     // Russian Roulette probability for path continuation
     float P_RR = 0.9; // Probability for path continuation (can be tuned)
     vec3 accumulated_color = vec3(0.0); // Accumulated color
-    vec3 accumulated_coef = vec3(1.0, 1.0, 1.0);
+    vec3 accumulated_coef = vec3(1.0) / P_RR;
     uint max_depth = scene_settings.num_bounces;
-    for (int depth = 0; depth < max_depth; ++depth) {
+    vec3 direct_light_direct = vec3(0.0);
+    float coef_light_direct = 1.0;
+    vec3 wm=vec3(0.0);
+    float pdf; // Coefficient for shading
+    HitRecord hit_record;
+    Material last_material;
+    uint type=0;
+    for (int depth = 0; depth <= max_depth; ++depth) {
         // Russian Roulette termination condition
         float ksi = RandomFloat();
         if (ksi > P_RR) {
             break;
         }
-
         // Compute the direct lighting
+        // TODO: disable for transmissive
         vec3 color_direct = vec3(0.0);
         vec3 color_direct_direction = vec3(0.0);
         float color_direct_pdf = 0.0;
-        if (scene_settings.enable_direct_lighting && depth != 0){
+        if (depth!=0 && scene_settings.enable_direct_lighting){
             // Define metadata
             float entity_last_cdf = 0.0;
             uint sampled_entity_id = -1;
@@ -882,11 +893,10 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
                 light_direction = normalize(light_direction);
                 color_direct_direction = normalize(sampled_point - origin);
                 TraceRay(sampled_point, light_direction);
-            
+
                 if (ray_payload.t > light_distance - 1e-3){
                     // Origin
-                    HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
-                    Material origin_material = GetMaterial(hit_record);
+                    Material origin_material = last_material;
                     vec3 origin_normal = origin_material.normal;
                     // Light
                     Material light_material = materials[sampled_entity_id];
@@ -898,24 +908,31 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
 			        if (dot(light_normal, light_direction) < 0){
 				        light_normal = -light_normal;
 			        }
-                    if (dot(light_normal, light_direction) < 0){
+                    if (dot(origin_normal, light_direction) < 0){
                         origin_normal = -origin_normal;
                     }
 
                     // Get the direct lighting
 			        float light_area = length(cross(v1.position - v0.position, v2.position - v0.position)) / 2.0;
-			        color_direct_pdf = sampled_probability / light_area;
+			        
 			        float light_cos = max(1e-3, dot(light_normal, light_direction));
                     float origin_cos = max(1e-3, dot(origin_normal, light_direction));
                     vec3 light_intrinsic = emission * emission_strength;
 			        float light_attenuation = light_cos * origin_cos / (light_distance * light_distance);
+                    color_direct_pdf = sampled_probability / light_area;
 			        color_direct = light_intrinsic * light_attenuation;
 		        }
             }
         }
+        vec3 final_color_direct;
+        if (length(color_direct) > 1e-6)
+            final_color_direct = color_direct * EvaluateAll(hit_record, last_material, direct_light_direct, wm, color_direct_direction, P_RR, color_direct_pdf, type);
+        // Accumulate radiance from the current bounce
+        
 
         // Path tracing
         // Trace the ray to find where it hits
+        
         TraceRay(origin, direction);
         // If the ray hits nothing (background), sample from the environment map
         if (ray_payload.t == -1.0) {
@@ -924,33 +941,42 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         }
 
         // Get the hit record (intersection details, normal, material, etc.)
-        HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
+        hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
-
-        if (material.emission_strength > 0.0) {
-			accumulated_color += material.emission * material.emission_strength * accumulated_coef;
-		    break;
+        
+        if (material.emission_strength > 1e-4){
+            if (scene_settings.enable_direct_lighting && color_direct_pdf > 1e-6){
+			    accumulated_color += accumulated_coef * (color_direct_pdf * final_color_direct) / (color_direct_pdf + pdf);
+                accumulated_color += accumulated_coef * (pdf * material.emission * material.emission_strength) / (color_direct_pdf + pdf);
+			}
+            else
+                accumulated_color += accumulated_coef * material.emission * material.emission_strength;
+		}
+        else {
+            accumulated_color += accumulated_coef * final_color_direct;
         }
-
+        
+        if (depth == max_depth)
+            break;
         // Sample a new direction wi
-        vec3 wi, wm=vec3(0.0); // New ray direction (outgoing)
-        float pdf; // Coefficient for shading
+        vec3 wi; // New ray direction (outgoing)
 
         // Sample the material's BRDF
-        uint type = SampleAll(hit_record, material, direction, wm, wi, pdf);
+        type = SampleAll(hit_record, material, direction, wm, wi, pdf);
         vec3 color_indirect = EvaluateAll(hit_record, material, direction, wm, wi, P_RR, pdf, type);
-        vec3 final_color_direct = color_direct * EvaluateAll(hit_record, material, direction, wm, color_direct_direction, P_RR, color_direct_pdf, type);
-        // Update the ray origin and direction for the next bounce
+        // Update the ray origin and direction for the next bounce'
+        direct_light_direct = direction;
+        last_material = material;
         origin = hit_record.position;
         direction = wi;
-
-        // Accumulate radiance from the current bounce
-        if (scene_settings.enable_direct_lighting && depth != 0)
-            accumulated_color += accumulated_coef * (color_direct_pdf * color_direct + pdf * color_indirect) / (color_direct_pdf + pdf);
+ 
         accumulated_coef *= color_indirect;
+
         if (length(wi) < 1e-3){
             break;
         }
+        // return vec3(0.5);
+        // return accumulated_color;
     }
     
     return accumulated_color;
