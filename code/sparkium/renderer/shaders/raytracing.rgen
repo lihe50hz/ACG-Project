@@ -9,8 +9,6 @@
 #include "ray_payload.glsl"
 #include "scene_settings.glsl"
 
-// Material material;
-
 layout(set = 0, binding = 0, std140) uniform SceneSettingsUniform {
   SceneSettings scene_settings;
 };
@@ -731,18 +729,13 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
 			break;
 		case MATERIAL_TYPE_SPECULAR:
 			vec3 w_reflect = reflect(wo, hit_record.shading_normal);
-            if (dot(w_reflect, wi) > 1.0 - 1e-3){
-                return material.base_color / P_RR / pdf;
-            }
-            else
-                return vec3(0.0);
+            if (dot(w_reflect, wi) > 1.0 - 1e-3) return material.base_color / P_RR / pdf;
+            else return vec3(0.0);
 			break;
 		case MATERIAL_TYPE_PRINCIPLED:
             bool thin = false;
             float relativeIOR = material.ior;
-            if (hit_record.front_face){
-				relativeIOR = 1.0 / relativeIOR;
-			}
+            if (hit_record.front_face) relativeIOR = 1.0 / relativeIOR;
             
             wo = -wo;
             mat3 TNB = mat3(hit_record.tangent, hit_record.shading_normal, hit_record.bitangent);
@@ -766,7 +759,6 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
                     break;
                 case 2:
                     float rscaled = material.transmission_roughness;
-                    // calculate all of the anisotropic params
                     float taspect = sqrt(1.0 - material.anisotropic * 0.9);
                     float tax = max(0.001, rscaled / taspect);
                     float tay = max(0.001, rscaled * taspect);
@@ -781,6 +773,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
                     return clearcoatWeight * vec3(clearcoat) / P_RR / pdf;
                     break;
             }
+
             break;
 	}
     return vec3(0.0);
@@ -811,9 +804,7 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
         // Compute the pdf
         float pdf_this = metadatas[entity_id].emission_cdf - entity_last_cdf;
         entity_last_cdf = metadatas[entity_id].emission_cdf;
-        if (pdf_this < 1e-6){
-			continue;
-		}
+        if (pdf_this < 1e-6) continue;
                 
         // Store the entity id and the probability
 		sampled_entity_id = entity_id;
@@ -840,9 +831,7 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
             // Compute the pdf
             float pdf_this = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id] - triangle_last_cdf;
             triangle_last_cdf = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id];
-            if (pdf_this < 1e-6){
-			    continue;
-		    }
+            if (pdf_this < 1e-6) continue;
 
             // Store the entity id and the probability
 			sampled_triangle_id = primitive_id;
@@ -883,18 +872,10 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 
 			// Compute the direct lighting and right normals
 			vec3 light_normal = normalize(cross(v1.position - v0.position, v2.position - v0.position));
-			if (dot(light_normal, light_direction) < 0){
-				light_normal = -light_normal;
-			}
-            if (dot(origin_normal, light_direction) < 0){
-                origin_normal = -origin_normal;
-            }
-
-            // Get the direct lighting
 			float light_area = length(cross(v1.position - v0.position, v2.position - v0.position)) / 2.0;
 			        
-			float light_cos = max(1e-3, dot(light_normal, light_direction));
-            float origin_cos = max(1e-3, dot(origin_normal, light_direction));
+			float light_cos = max(1e-3, abs(dot(light_normal, light_direction)));
+            float origin_cos = max(1e-3, abs(dot(origin_normal, light_direction)));
             vec3 light_intrinsic = emission * emission_strength;
 			float light_attenuation = light_cos * origin_cos / (light_distance * light_distance);
             pdf = sampled_probability / light_area;
@@ -903,22 +884,20 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
     }
 
     // Return the direct lighting
-    if (length(color_direct) > 1e-6)
+    if (length(color_direct) > 1e-6) // Sampled direct light is not none
         return color_direct * EvaluateAll(hit_record, material, wo, wm, color_direct_direction, P_RR, pdf, type);
     return vec3(0.0);
 
 }
 
 vec3 SampleRay(vec3 origin, vec3 direction) {
-    // Russian Roulette probability for path continuation
-    float P_RR = 0.9; // Probability for path continuation (can be tuned)
-    vec3 accumulated_color = vec3(0.0); // Accumulated color
+    // Overall Coefficient
+    float P_RR = 0.9;
+    vec3 accumulated_color = vec3(0.0); 
     vec3 accumulated_coef = vec3(1.0);
     uint max_depth = scene_settings.num_bounces;
 
-    vec3 wm=vec3(0.0);
-
-    
+    // Coefficient for compute shading
     float color_direct_pdf;
     vec3 color_direct;
     float color_indirect_pdf; 
@@ -929,11 +908,16 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
     Material last_material;
     vec3 last_direction;
     uint last_type;
+    vec3 last_wm;
+
     for (int depth = 0; depth <= max_depth; ++depth) {
-        // Accumulate radiance from the current bounce
-        
+        // Direct lighting
         if (depth!=0 && scene_settings.enable_direct_lighting)
-            color_direct = EvaluateDirectLight(last_hit_record, origin, last_material, last_direction, wm, P_RR, last_type, color_direct_pdf);
+            color_direct = EvaluateDirectLight(last_hit_record, origin, last_material, last_direction, last_wm, P_RR, last_type, color_direct_pdf);
+        else { // No direct light is computed
+            color_direct = vec3(0.0);
+            color_direct_pdf = 0.0;
+        }
 
         // Path tracing
         TraceRay(origin, direction);
@@ -949,29 +933,27 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         
         // Multiple importance sampling on light, compute shading
         if (material.emission_strength > 1e-4){ // When indirect light hit the light source
+            vec3 color_light = material.emission * material.emission_strength;
             if (scene_settings.enable_direct_lighting && color_direct_pdf > 1e-6){ // Multiple importance sampling
 			    accumulated_color += accumulated_coef * (color_direct_pdf * color_direct) / (color_direct_pdf + color_indirect_pdf);
-                accumulated_color += accumulated_coef * (color_indirect_pdf * material.emission * material.emission_strength) / (color_direct_pdf + color_indirect_pdf);
+                accumulated_color += accumulated_coef * (color_indirect_pdf * color_light) / (color_direct_pdf + color_indirect_pdf);
 			}
             else // No direct light case
-                accumulated_color += accumulated_coef * material.emission * material.emission_strength;
+                accumulated_color += accumulated_coef * color_light;
 		}
         else { // Otherwise, only direct light
             accumulated_color += accumulated_coef * color_direct;
         }
         
         // This is the actual ends of the loop
-        if (depth == max_depth)
-            break;
-        
+        if (depth == max_depth) break;
+   
         // Russian Roulette termination condition
         float ksi = RandomFloat();
-        if (ksi > P_RR) {
-            break;
-        }
+        if (ksi > P_RR) break;
 
         // Multiple importance sampling on the material's BRDF
-        vec3 wi;
+        vec3 wi, wm;
         uint type = SampleAll(hit_record, material, direction, wm, wi, color_indirect_pdf);
 
         // Compute the color for the next bounce
@@ -982,6 +964,7 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         last_material = material;
         last_hit_record = hit_record;
         last_type = type;
+        last_wm = wm;
 
         // Next ray
         origin = hit_record.position;
