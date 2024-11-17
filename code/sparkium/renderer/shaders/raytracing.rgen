@@ -110,7 +110,6 @@ Material GetMaterial(HitRecord hit_record) {
   return material;
 }
 
-// Sample a random point on the hemisphere with a cosine-weighted distribution
 vec3 SampleHemisphere(vec3 normal) {
     // Randomly sample spherical coordinates
     float xi1 = RandomFloat();
@@ -259,7 +258,6 @@ void GgxVndfAnisotropicPdf(vec3 wi, vec3 wm, vec3 wo, float ax, float ay, out fl
     fPdf = pdf;
 }
 
-// Computes the Fresnel reflectance for a dielectric material using Schlick's approximation
 float FresnelDielectric(float cosThetaI, float etaI, float etaT) {
     cosThetaI = clamp(cosThetaI, -1.0, 1.0);
 
@@ -720,7 +718,6 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
                 pdf = forwardPdf * pClearcoat / scale;
 			}
             wi = normalize(TNB * wi);
-            
             break;
 	}
 
@@ -789,150 +786,156 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
     return vec3(0.0);
 }
 
+vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, vec3 wo, vec3 wm, float P_RR, uint type, out float pdf){
+    // Compute the direct lighting
+    // TODO: disable for transmissive
+    vec3 color_direct = vec3(0.0);
+    vec3 color_direct_direction = vec3(0.0);
+    pdf = 0.0;
+
+    // Define metadata
+    float entity_last_cdf = 0.0;
+    uint sampled_entity_id = -1;
+    uint sampled_triangle_id = -1;
+    float sampled_probability = 1.0;
+
+    // According to the cdf, sample an entity
+    float random_number = RandomFloat();
+    for (uint entity_id = 0; entity_id < scene_settings.num_entity; entity_id++){
+        // Choose whether to sample this according to CDF
+        if (random_number > metadatas[entity_id].emission_cdf){
+            entity_last_cdf = metadatas[entity_id].emission_cdf;
+            continue;
+        }
+
+        // Compute the pdf
+        float pdf_this = metadatas[entity_id].emission_cdf - entity_last_cdf;
+        entity_last_cdf = metadatas[entity_id].emission_cdf;
+        if (pdf_this < 1e-6){
+			continue;
+		}
+                
+        // Store the entity id and the probability
+		sampled_entity_id = entity_id;
+        sampled_probability *= pdf_this; // Use in  rendering function
+        break;
+	}
+        
+    // If we have sampled an entity, sample a triangle
+    random_number = RandomFloat();
+    if (sampled_entity_id != -1){
+        // Get metadata
+        uint mesh_id = metadatas[sampled_entity_id].mesh_id;
+        uint num_triangles = mesh_metadatas[mesh_id].num_index / 3;
+        float triangle_last_cdf = 0.0;
+
+        // According to the cdf, sample a triangle
+        for (uint primitive_id = 0; primitive_id < num_triangles; primitive_id++){
+            // Choose whether to sample this according to CDF
+            if (random_number > mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id]){
+                entity_last_cdf = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id];
+                continue;
+            }
+
+            // Compute the pdf
+            float pdf_this = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id] - triangle_last_cdf;
+            triangle_last_cdf = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id];
+            if (pdf_this < 1e-6){
+			    continue;
+		    }
+
+            // Store the entity id and the probability
+			sampled_triangle_id = primitive_id;
+            sampled_probability *= pdf_this; // Use in  rendering function
+            break;
+		}
+    }
+
+    // If we have sampled a triangle, sample a point, compute the direct lighting
+    if (sampled_triangle_id != -1){
+        // Get the vertices
+        uint mesh_id = metadatas[sampled_entity_id].mesh_id;
+        Vertex v0 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 0]);
+        Vertex v1 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 1]);
+        Vertex v2 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 2]);
+
+        // Uniformly sample points in triangle
+        float coef0 = sqrt(RandomFloat());
+        float coef1 = RandomFloat() * (1 - coef0);
+        float coef2 = 1 - coef0 - coef1;
+        vec3 sampled_point = v0.position * coef0 + v1.position * coef1 + v2.position * coef2;
+
+        // Test whether the light is blocked
+        vec3 light_direction = origin - sampled_point;
+        float light_distance = length(light_direction);
+        light_direction = normalize(light_direction);
+        color_direct_direction = normalize(sampled_point - origin);
+        TraceRay(sampled_point, light_direction);
+
+        if (ray_payload.t > light_distance - 1e-3){
+            // Origin
+            Material origin_material = material;
+            vec3 origin_normal = origin_material.normal;
+            // Light
+            Material light_material = materials[sampled_entity_id];
+            vec3 emission = light_material.emission;
+            float emission_strength = light_material.emission_strength;
+
+			// Compute the direct lighting and right normals
+			vec3 light_normal = normalize(cross(v1.position - v0.position, v2.position - v0.position));
+			if (dot(light_normal, light_direction) < 0){
+				light_normal = -light_normal;
+			}
+            if (dot(origin_normal, light_direction) < 0){
+                origin_normal = -origin_normal;
+            }
+
+            // Get the direct lighting
+			float light_area = length(cross(v1.position - v0.position, v2.position - v0.position)) / 2.0;
+			        
+			float light_cos = max(1e-3, dot(light_normal, light_direction));
+            float origin_cos = max(1e-3, dot(origin_normal, light_direction));
+            vec3 light_intrinsic = emission * emission_strength;
+			float light_attenuation = light_cos * origin_cos / (light_distance * light_distance);
+            pdf = sampled_probability / light_area;
+			color_direct = light_intrinsic * light_attenuation;
+		}
+    }
+
+    // Return the direct lighting
+    if (length(color_direct) > 1e-6)
+        return color_direct * EvaluateAll(hit_record, material, wo, wm, color_direct_direction, P_RR, pdf, type);
+    return vec3(0.0);
+
+}
+
 vec3 SampleRay(vec3 origin, vec3 direction) {
     // Russian Roulette probability for path continuation
     float P_RR = 0.9; // Probability for path continuation (can be tuned)
     vec3 accumulated_color = vec3(0.0); // Accumulated color
-    vec3 accumulated_coef = vec3(1.0) / P_RR;
+    vec3 accumulated_coef = vec3(1.0);
     uint max_depth = scene_settings.num_bounces;
-    vec3 direct_light_direct = vec3(0.0);
-    float coef_light_direct = 1.0;
+
     vec3 wm=vec3(0.0);
-    float pdf; // Coefficient for shading
-    HitRecord hit_record;
+
+    
+    float color_direct_pdf;
+    vec3 color_direct;
+    float color_indirect_pdf; 
+    vec3 color_indirect;
+
+    // Record for variable needed in the next iteration
+    HitRecord last_hit_record;
     Material last_material;
-    uint type=0;
+    vec3 last_direction;
+    uint last_type;
     for (int depth = 0; depth <= max_depth; ++depth) {
-        // Russian Roulette termination condition
-        float ksi = RandomFloat();
-        if (ksi > P_RR) {
-            break;
-        }
-        // Compute the direct lighting
-        // TODO: disable for transmissive
-        vec3 color_direct = vec3(0.0);
-        vec3 color_direct_direction = vec3(0.0);
-        float color_direct_pdf = 0.0;
-        if (depth!=0 && scene_settings.enable_direct_lighting){
-            // Define metadata
-            float entity_last_cdf = 0.0;
-            uint sampled_entity_id = -1;
-            uint sampled_triangle_id = -1;
-            float sampled_probability = 1.0;
-            float random_number = 0.0; 
-
-            // According to the cdf, sample an entity
-            random_number = RandomFloat();
-            for (uint entity_id = 0; entity_id < scene_settings.num_entity; entity_id++){
-                // Choose whether to sample this according to CDF
-                if (random_number > metadatas[entity_id].emission_cdf){
-                    entity_last_cdf = metadatas[entity_id].emission_cdf;
-                    continue;
-                }
-
-                // Compute the pdf
-                float pdf_this = metadatas[entity_id].emission_cdf - entity_last_cdf;
-                entity_last_cdf = metadatas[entity_id].emission_cdf;
-                if (pdf_this < 1e-6){
-			        continue;
-		        }
-                
-                // Store the entity id and the probability
-			    sampled_entity_id = entity_id;
-                sampled_probability *= pdf_this; // Use in  rendering function
-                break;
-	        }
-        
-            // If we have sampled an entity, sample a triangle
-            random_number = RandomFloat();
-            if (sampled_entity_id != -1){
-                // Get metadata
-                uint mesh_id = metadatas[sampled_entity_id].mesh_id;
-                uint num_triangles = mesh_metadatas[mesh_id].num_index / 3;
-                float triangle_last_cdf = 0.0;
-
-                // According to the cdf, sample a triangle
-                for (uint primitive_id = 0; primitive_id < num_triangles; primitive_id++){
-                    // Choose whether to sample this according to CDF
-                    if (random_number > mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id]){
-                        entity_last_cdf = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id];
-                        continue;
-                    }
-
-                    // Compute the pdf
-                    float pdf_this = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id] - triangle_last_cdf;
-                    triangle_last_cdf = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id];
-                    if (pdf_this < 1e-6){
-			            continue;
-		            }
-
-                    // Store the entity id and the probability
-			        sampled_triangle_id = primitive_id;
-                    sampled_probability *= pdf_this; // Use in  rendering function
-                    break;
-		        }
-            }
-
-            // If we have sampled a triangle, sample a point, compute the direct lighting
-            if (sampled_triangle_id != -1){
-                // Get the vertices
-                uint mesh_id = metadatas[sampled_entity_id].mesh_id;
-                Vertex v0 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 0]);
-                Vertex v1 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 1]);
-                Vertex v2 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 2]);
-
-                // Uniformly sample points in triangle
-                float coef0 = sqrt(RandomFloat());
-                float coef1 = RandomFloat() * (1 - coef0);
-                float coef2 = 1 - coef0 - coef1;
-                vec3 sampled_point = v0.position * coef0 + v1.position * coef1 + v2.position * coef2;
-
-                // Test whether the light is blocked
-                vec3 light_direction = origin - sampled_point;
-                float light_distance = length(light_direction);
-                light_direction = normalize(light_direction);
-                color_direct_direction = normalize(sampled_point - origin);
-                TraceRay(sampled_point, light_direction);
-
-                if (ray_payload.t > light_distance - 1e-3){
-                    // Origin
-                    Material origin_material = last_material;
-                    vec3 origin_normal = origin_material.normal;
-                    // Light
-                    Material light_material = materials[sampled_entity_id];
-                    vec3 emission = light_material.emission;
-                    float emission_strength = light_material.emission_strength;
-
-			        // Compute the direct lighting and right normals
-			        vec3 light_normal = normalize(cross(v1.position - v0.position, v2.position - v0.position));
-			        if (dot(light_normal, light_direction) < 0){
-				        light_normal = -light_normal;
-			        }
-                    if (dot(origin_normal, light_direction) < 0){
-                        origin_normal = -origin_normal;
-                    }
-
-                    // Get the direct lighting
-			        float light_area = length(cross(v1.position - v0.position, v2.position - v0.position)) / 2.0;
-			        
-			        float light_cos = max(1e-3, dot(light_normal, light_direction));
-                    float origin_cos = max(1e-3, dot(origin_normal, light_direction));
-                    vec3 light_intrinsic = emission * emission_strength;
-			        float light_attenuation = light_cos * origin_cos / (light_distance * light_distance);
-                    color_direct_pdf = sampled_probability / light_area;
-			        color_direct = light_intrinsic * light_attenuation;
-		        }
-            }
-        }
-        vec3 final_color_direct;
-        if (length(color_direct) > 1e-6)
-            final_color_direct = color_direct * EvaluateAll(hit_record, last_material, direct_light_direct, wm, color_direct_direction, P_RR, color_direct_pdf, type);
         // Accumulate radiance from the current bounce
         
+        if (depth!=0 && scene_settings.enable_direct_lighting)
+            color_direct = EvaluateDirectLight(last_hit_record, origin, last_material, last_direction, wm, P_RR, last_type, color_direct_pdf);
 
         // Path tracing
-        // Trace the ray to find where it hits
-        
         TraceRay(origin, direction);
         // If the ray hits nothing (background), sample from the environment map
         if (ray_payload.t == -1.0) {
@@ -941,42 +944,49 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         }
 
         // Get the hit record (intersection details, normal, material, etc.)
-        hit_record = ComposeHitRecord(ray_payload, origin, direction);
+        HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
         
-        if (material.emission_strength > 1e-4){
-            if (scene_settings.enable_direct_lighting && color_direct_pdf > 1e-6){
-			    accumulated_color += accumulated_coef * (color_direct_pdf * final_color_direct) / (color_direct_pdf + pdf);
-                accumulated_color += accumulated_coef * (pdf * material.emission * material.emission_strength) / (color_direct_pdf + pdf);
+        // Multiple importance sampling on light, compute shading
+        if (material.emission_strength > 1e-4){ // When indirect light hit the light source
+            if (scene_settings.enable_direct_lighting && color_direct_pdf > 1e-6){ // Multiple importance sampling
+			    accumulated_color += accumulated_coef * (color_direct_pdf * color_direct) / (color_direct_pdf + color_indirect_pdf);
+                accumulated_color += accumulated_coef * (color_indirect_pdf * material.emission * material.emission_strength) / (color_direct_pdf + color_indirect_pdf);
 			}
-            else
+            else // No direct light case
                 accumulated_color += accumulated_coef * material.emission * material.emission_strength;
 		}
-        else {
-            accumulated_color += accumulated_coef * final_color_direct;
+        else { // Otherwise, only direct light
+            accumulated_color += accumulated_coef * color_direct;
         }
         
+        // This is the actual ends of the loop
         if (depth == max_depth)
             break;
-        // Sample a new direction wi
-        vec3 wi; // New ray direction (outgoing)
-
-        // Sample the material's BRDF
-        type = SampleAll(hit_record, material, direction, wm, wi, pdf);
-        vec3 color_indirect = EvaluateAll(hit_record, material, direction, wm, wi, P_RR, pdf, type);
-        // Update the ray origin and direction for the next bounce'
-        direct_light_direct = direction;
-        last_material = material;
-        origin = hit_record.position;
-        direction = wi;
- 
-        accumulated_coef *= color_indirect;
-
-        if (length(wi) < 1e-3){
+        
+        // Russian Roulette termination condition
+        float ksi = RandomFloat();
+        if (ksi > P_RR) {
             break;
         }
-        // return vec3(0.5);
-        // return accumulated_color;
+
+        // Multiple importance sampling on the material's BRDF
+        vec3 wi;
+        uint type = SampleAll(hit_record, material, direction, wm, wi, color_indirect_pdf);
+
+        // Compute the color for the next bounce
+        vec3 color_indirect = EvaluateAll(hit_record, material, direction, wm, wi, P_RR, color_indirect_pdf, type);
+        
+        // Update the ray origin and direction for the next bounce'
+        last_direction = direction;
+        last_material = material;
+        last_hit_record = hit_record;
+        last_type = type;
+
+        // Next ray
+        origin = hit_record.position;
+        direction = wi;
+        accumulated_coef *= color_indirect;
     }
     
     return accumulated_color;
