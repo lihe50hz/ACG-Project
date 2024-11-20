@@ -4,6 +4,7 @@
 #define MATERIAL_TYPE_LAMBERTIAN 0
 #define MATERIAL_TYPE_SPECULAR 1
 #define MATERIAL_TYPE_PRINCIPLED 2
+#define MATERIAL_TYPE_VOLUMETRIC 3
 
 struct Material {
   vec3 base_color;
@@ -35,6 +36,12 @@ struct Material {
 
   vec3 normal;
   uint type;
+
+  vec3 l_e;
+  float l_e_strength;
+  float sigma_a;
+  float sigma_s;
+  float g;
 };
 
 #endif

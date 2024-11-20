@@ -172,28 +172,32 @@ void LoadCornellBox(Scene *scene) {
   // <index value = "16" /><index value = "17" /><index value = "19" />
   // <index value = "17" /><index value = "18" /> <index value = "19" />
   indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
-             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19};
+             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21, 23, 21, 22, 23};
   vertices.clear();
   vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f, 1.0f}));
   vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({290.0f, 30.0f, 114.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({240.0f, 30.0f, 272.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({130.0f, 30.0f, 65.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({290.0f, 30.0f, 114.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({82.0f, 30.0f, 225.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({130.0f, 30.0f, 65.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({240.0f, 30.0f, 272.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({82.0f, 30.0f, 225.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({130.0f, 30.0f, 65.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({82.0f, 30.0f, 225.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({240.0f, 30.0f, 272.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({290.0f, 30.0f, 114.0f}, {0.0f, 1.0f}));
   int short_box_mesh_id =
       asset_manager->LoadMesh(Mesh(vertices, indices), "ShortBoxMesh");
   Material short_box_material;
@@ -260,28 +264,32 @@ void LoadCornellBox(Scene *scene) {
   // <index value="18"/>
   // <index value="19"/>
   indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
-             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19};
+             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21, 23, 21, 22, 23};
   vertices.clear();
   vertices.push_back(make_vertex({423.0f, 330.0f, 247.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({265.0f, 330.0f, 296.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({314.0f, 330.0f, 456.0f}, {1.0f, 1.0f}));
   vertices.push_back(make_vertex({472.0f, 330.0f, 406.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({423.0f, 0.0f, 247.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({423.0f, 30.0f, 247.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({423.0f, 330.0f, 247.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({472.0f, 330.0f, 406.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({472.0f, 0.0f, 406.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({472.0f, 0.0f, 406.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({472.0f, 30.0f, 406.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({472.0f, 30.0f, 406.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({472.0f, 330.0f, 406.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({314.0f, 330.0f, 456.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({314.0f, 0.0f, 456.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({314.0f, 0.0f, 456.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({314.0f, 30.0f, 456.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({314.0f, 30.0f, 456.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({314.0f, 330.0f, 456.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({265.0f, 330.0f, 296.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({265.0f, 0.0f, 296.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({265.0f, 0.0f, 296.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({265.0f, 30.0f, 296.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({265.0f, 30.0f, 296.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({265.0f, 330.0f, 296.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({423.0f, 330.0f, 247.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({423.0f, 0.0f, 247.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({423.0f, 30.0f, 247.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({423.0f, 30.0f, 247.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({265.0f, 30.0f, 296.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({314.0f, 30.0f, 456.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({472.0f, 30.0f, 406.0f}, {0.0f, 1.0f}));
 
   int tall_box_mesh_id =
       asset_manager->LoadMesh(Mesh(vertices, indices), "TallBoxMesh");
