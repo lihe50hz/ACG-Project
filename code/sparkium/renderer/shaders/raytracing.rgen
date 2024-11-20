@@ -395,8 +395,8 @@ vec3 SampleHemisphere(vec3 normal) {
 
     // Convert from spherical to Cartesian coordinates
     // theta is the angle from the normal
-    float theta = acos(sqrt(1.0 - xi1));  // theta ¡Ê [0, pi]
-    float phi = 2.0 * PI * xi2;            // phi ¡Ê [0, 2*pi]
+    float theta = acos(sqrt(1.0 - xi1));  // theta ï¿½ï¿½ [0, pi]
+    float phi = 2.0 * PI * xi2;            // phi ï¿½ï¿½ [0, 2*pi]
 
     // Spherical to Cartesian conversion
     float x = sin(theta) * cos(phi);
@@ -598,6 +598,10 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
 			}
             wi = normalize(TNB * wi);
             break;
+        case MATERIAL_TYPE_VOLUMETRIC:
+            wi = wo;
+            pdf = 1.0;
+            break;
 	}
     return type;
 }
@@ -658,6 +662,8 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
                     break;
             }
             break;
+        case MATERIAL_TYPE_VOLUMETRIC:
+            return vec3(1.0);
 	}
     return vec3(0.0);
 }
@@ -775,12 +781,49 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 
 }
 
+float SampleExponential(float sigma) {
+    float u = RandomFloat();
+    return -log(u) / sigma;
+}
+
+vec3 SampleHG(float g, vec3 dir) {
+    float u_1 = RandomFloat();
+    float u_2 = RandomFloat();
+    float cos_theta;
+    if (abs(g) < 1e-3)
+        cos_theta = 1 - 2 * u_1;
+    else {
+        float temp = (1 - g * g) / (1 + g - 2 * g * u_1);
+        cos_theta = 1 * (1 + g * g - temp * temp) / (2 * g) ;
+    }
+    float sin_theta = sqrt(1 - cos_theta * cos_theta);
+    float phi = 2 * PI * u_2;
+
+    // Normalize dir to form z'
+    vec3 zAxis = dir;
+
+    // Compute x' (arbitrary perpendicular vector to z')
+    vec3 xAxis = normalize(vec3(-zAxis.z, 0.0, zAxis.x));
+    
+    // Compute y' as cross product
+    vec3 yAxis = cross(zAxis, xAxis);
+
+    // Convert spherical to cartesian
+    vec3 localCartesian = vec3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
+
+    // Transform to original coordinate system
+    return localCartesian.x * xAxis + localCartesian.y * yAxis + localCartesian.z * zAxis;
+}
+
 vec3 SampleRay(vec3 origin, vec3 direction) {
     // Overall Coefficient
     float P_RR = 0.9;
     vec3 accumulated_color = vec3(0.0); 
     vec3 accumulated_coef = vec3(1.0);
     uint max_depth = scene_settings.num_bounces;
+
+    bool outside = true;
+    bool volumetric = scene_settings.enable_volumetric_rendering;
 
     // Coefficient for compute shading
     float color_direct_pdf;
@@ -796,7 +839,12 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
     bool last_trans=false;
     vec3 last_wm;
 
-    for (int depth = 0; depth <= max_depth; ++depth) {
+    int depth = 0;
+    while (true) {
+        // This is the actual end of the loop
+        if (depth > max_depth)
+            break;
+
         // Direct lighting
         if (depth!=0 && scene_settings.enable_direct_lighting && last_type != 2)
             color_direct = EvaluateDirectLight(last_hit_record, origin, last_material, last_direction, last_wm, P_RR, last_type, color_direct_pdf, last_trans);
@@ -816,49 +864,202 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         // Get the hit record (intersection details, normal, material, etc.)
         HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
-        
-        // Multiple importance sampling on light, compute shading
-        if (material.emission_strength > 1e-4){ // When indirect light hit the light source
-            vec3 color_light = material.emission * material.emission_strength;
-            if (scene_settings.enable_direct_lighting && color_direct_pdf > 1e-6){ // Multiple importance sampling
-			    accumulated_color += accumulated_coef * (color_direct_pdf * color_direct) / (color_direct_pdf + color_indirect_pdf);
-                accumulated_color += accumulated_coef * (color_indirect_pdf * color_light) / (color_direct_pdf + color_indirect_pdf);
-			}
-            else accumulated_color += accumulated_coef * color_light;// No direct light case
+
+        if (volumetric && outside && material.type == MATERIAL_TYPE_VOLUMETRIC) {
+            outside = false;
+            origin = hit_record.position;
+            accumulated_color += accumulated_coef * color_direct;
+            continue;
+        }
+        if (outside) {
+            // Multiple importance sampling on light, compute shading
+            if (material.emission_strength > 1e-4){ // When indirect light hit the light source
+                vec3 color_light = material.emission * material.emission_strength;
+                if (scene_settings.enable_direct_lighting && color_direct_pdf > 1e-6){ // Multiple importance sampling
+                    accumulated_color += accumulated_coef * (color_direct_pdf * color_direct) / (color_direct_pdf + color_indirect_pdf);
+                    accumulated_color += accumulated_coef * (color_indirect_pdf * color_light) / (color_direct_pdf + color_indirect_pdf);
+                }
+                else accumulated_color += accumulated_coef * color_light;// No direct light case
+                    
+            }
+            else accumulated_color += accumulated_coef * color_direct;// Otherwise, only direct light
+    
+            // Russian Roulette termination condition
+            float ksi = RandomFloat();
+            if (ksi > P_RR) break;
+
+            // Multiple importance sampling on the material's BRDF
+            vec3 wi, wm;
+            bool trans=false;
+            uint type = SampleAll(hit_record, material, direction, wm, wi, color_indirect_pdf, trans);
+            // return wi;
+            // Compute the color for the next bounce
+            vec3 color_indirect = EvaluateAll(hit_record, material, direction, wm, wi, P_RR, color_indirect_pdf, type, trans);
+            // return color_indirect;
+            // Update the ray origin and direction for the next bounce
+            last_direction = direction;
+            last_material = material;
+            last_hit_record = hit_record;
+            last_type = type;
+            last_wm = wm;
+            last_trans = trans;
+
+            // Next ray
+            origin = hit_record.position;
+            direction = wi;
+            accumulated_coef *= color_indirect;
+
+            depth++;
+        }
+        else {
+            bool terminated = false;
+            bool scattered = false;
+            while (true) {
+                float sigma_maj = material.sigma_a + material.sigma_s;
+
+                if (sigma_maj < 1e-4)
+                    break;
+
+                float t_sp = SampleExponential(sigma_maj);
+                if (t_sp > ray_payload.t)
+                    break;
+
+                float p_absorb = material.sigma_a / sigma_maj;
+                float p_scatter = material.sigma_s / sigma_maj;
+                float p_null = max(1 - p_absorb - p_scatter, 0.0f);
+                float u = RandomFloat();
                 
-		}
-        else accumulated_color += accumulated_coef * color_direct;// Otherwise, only direct light
-        
-        // This is the actual ends of the loop
-        if (depth == max_depth) break;
-   
-        // Russian Roulette termination condition
-        float ksi = RandomFloat();
-        if (ksi > P_RR) break;
+                if (u < p_absorb) {
+                    accumulated_color += accumulated_coef * material.l_e * material.l_e_strength;
+                    terminated = true;
+                    break;
+                }
+                else if (u < p_absorb + p_scatter) {
+                    origin = origin + direction * t_sp;
+                    direction = SampleHG(material.g, direction);
+                    scattered = true;
+                    break;
+                }
+                else {
+                    continue;
+                }
+            }
+            if (terminated)
+                break;
+            if (scattered) {
+                depth++;
+                continue;
+            }
+            outside = true;
+            origin = hit_record.position;
 
-        // Multiple importance sampling on the material's BRDF
-        vec3 wi, wm;
-        bool trans=false;
-        uint type = SampleAll(hit_record, material, direction, wm, wi, color_indirect_pdf, trans);
-        //return wi;
-        // Compute the color for the next bounce
-        vec3 color_indirect = EvaluateAll(hit_record, material, direction, wm, wi, P_RR, color_indirect_pdf, type, trans);
-        //return color_indirect;
-        // Update the ray origin and direction for the next bounce
-        last_direction = direction;
-        last_material = material;
-        last_hit_record = hit_record;
-        last_type = type;
-        last_wm = wm;
-        last_trans = trans;
-
-        // Next ray
-        origin = hit_record.position;
-        direction = wi;
-        accumulated_coef *= color_indirect;
+            last_direction = direction;
+            last_material = material;
+            last_hit_record = hit_record;
+            last_type = 0;
+            last_wm = vec3(0.0);
+            last_trans = false;
+        }
     }
     
     return accumulated_color;
+
+    // float P_RR = 0.9;
+    // vec3 accumulated_color = vec3(0.0); 
+    // vec3 accumulated_coef = vec3(1.0);
+    // uint max_depth = scene_settings.num_bounces;
+
+    // bool outside = true; // whether the ray is outside the medium
+
+    // int depth = 0;
+    // while (true) {
+    //     if (depth > max_depth)
+    //         break;
+
+    //     // Path tracing
+    //     TraceRay(origin, direction);
+
+    //     // If the ray hits nothing (background), sample from the environment map
+    //     if (ray_payload.t == -1.0) {
+    //         accumulated_color += accumulated_coef * EnvmapSample(direction);
+    //         break;
+    //     }
+
+    //     // Get the hit record (intersection details, normal, material, etc.)
+    //     HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
+    //     Material material = GetMaterial(hit_record);
+
+    //     if (outside) {
+    //         if (material.type == MATERIAL_TYPE_VOLUMETRIC) {
+    //             outside = false;
+    //             origin = hit_record.position;
+    //         }
+    //         else {
+    //             // Russian Roulette termination condition
+    //             float ksi = RandomFloat();
+    //             if (ksi > P_RR) break;
+
+    //             if (material.emission_strength > 1e-4) {
+    //                 accumulated_color += accumulated_coef * material.emission * material.emission_strength;
+    //                 break;
+    //             }
+
+    //             float color_indirect_pdf;
+    //             vec3 color_indirect;
+    //             vec3 wi, wm;
+    //             bool trans = false;
+
+    //             uint type = SampleAll(hit_record, material, direction, wm, wi, color_indirect_pdf, trans);
+    //             // Compute the color for the next bounce
+    //             color_indirect = EvaluateAll(hit_record, material, direction, wm, wi, P_RR, color_indirect_pdf, type, trans);
+                
+    //             origin = hit_record.position;
+    //             direction = wi;
+    //             accumulated_coef *= color_indirect;
+    //             depth++;
+    //         }
+    //     }
+    //     else {
+    //         bool terminated = false;
+    //         bool scattered = false;
+    //         while (true) {
+    //             float sigma_maj = material.sigma_a + material.sigma_s;
+    //             if (sigma_maj < 1e-4)
+    //                 break;
+    //             float t_sp = SampleExponential(sigma_maj);
+    //             if (t_sp > ray_payload.t) {
+    //                 origin = hit_record.position;
+    //                 break;
+    //             }
+    //             float p_absorb = material.sigma_a / sigma_maj;
+    //             float p_scatter = material.sigma_s / sigma_maj;
+    //             float p_null = max(1 - p_absorb - p_scatter, 0.0f);
+    //             float u = RandomFloat();
+    //             if (u < p_absorb) {
+    //                 accumulated_color += accumulated_coef * material.l_e * material.l_e_strength;
+    //                 terminated = true;
+    //                 break;
+    //             }
+    //             else if (u < p_absorb + p_scatter) {
+    //                 direction = SampleHG(material.g, direction);
+    //                 origin = origin + direction * t_sp;
+    //                 scattered = true;
+    //                 break;
+    //             }
+    //             else {
+    //                 continue;
+    //             }
+    //         }
+    //         if (terminated)
+    //             break;
+    //         if (scattered) {
+    //             depth++;
+    //             continue;
+    //         }
+    //         outside = true;
+    //     }
+    // }
+    // return accumulated_color;
 }
 
 void main() {

@@ -7,6 +7,7 @@ namespace sparkium {
 constexpr uint32_t MATERIAL_TYPE_LAMBERTIAN = 0;
 constexpr uint32_t MATERIAL_TYPE_SPECULAR = 1;
 constexpr uint32_t MATERIAL_TYPE_PRINCIPLED = 2;
+constexpr uint32_t MATERIAL_TYPE_VOLUMETRIC = 3;
 
 // clang-format off
 struct Material {
@@ -40,6 +41,13 @@ struct Material {
   glm::vec3 normal{0.5f, 0.5f, 1.0f};
   uint32_t type{0};
 
+  glm::vec3 l_e{0.0f};  // volumetric emission base color
+  float l_e_strength{0.0f};  // volumetric emission strength
+  float sigma_a{0.0f};  // absorption coefficient
+  float sigma_s{0.0f};  // scattering coefficient
+  float g{0.0f};        // asymmetry parameter for Henyey-Greenstein phase function
+
+  float paddings[1];
   // This structure needs to be padded to 16 bytes
 };
 // clang-format on

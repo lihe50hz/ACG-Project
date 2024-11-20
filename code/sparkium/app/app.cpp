@@ -494,6 +494,10 @@ ImVec2 Application::ImGuiSettingsWindow() {
         ImGui::Checkbox("Direct Lighting",
                         reinterpret_cast<bool *>(
                             &editing_scene_settings_.enable_direct_lighting));
+    render_settings_changed_ |=
+        ImGui::Checkbox("Volumetric Rendering",
+                        reinterpret_cast<bool *>(
+                            &editing_scene_settings_.enable_volumetric_rendering));
     scene_->SetSceneSettings(editing_scene_settings_);
   }
   if (ImGui::CollapsingHeader("Environment Map Settings")) {
@@ -520,10 +524,10 @@ ImVec2 Application::ImGuiSettingsWindow() {
           asset_manager_->ComboForMeshSelection("Mesh", &metadata.mesh_id);
 
       const char *material_type_names[] = {"Lambertian", "Specular",
-                                           "Principled"};
+                                           "Principled", "Volumetric"};
       render_settings_changed_ |=
           ImGui::Combo("Material Type", reinterpret_cast<int *>(&material.type),
-                       material_type_names, 3);
+                       material_type_names, 4);
 
       render_settings_changed_ |=
           ImGui::ColorEdit3("Base Color", &material.base_color.r);
@@ -581,13 +585,26 @@ ImVec2 Application::ImGuiSettingsWindow() {
 
       render_settings_changed_ |=
           ImGui::SliderFloat("Alpha", &material.alpha, 0.0f, 1.0f);
+      
+      if (material.type == 3) {
+        render_settings_changed_ |=
+            ImGui::ColorEdit3("Volumetric Emission", &material.l_e.r);
+        render_settings_changed_ |=
+            ImGui::SliderFloat("Volumetric Emission Strength", &material.l_e_strength, 0.0f, 5.0f);
+        render_settings_changed_ |=
+            ImGui::SliderFloat("Absorption", &material.sigma_a, 0.0f, 0.1f);
+        render_settings_changed_ |=
+            ImGui::SliderFloat("Scattering", &material.sigma_s, 0.0f, 0.1f);
+        render_settings_changed_ |=
+            ImGui::SliderFloat("Asymmetry", &material.g, -1.0f, 1.0f);
+      }
 
       scene_->SetEntityMaterial(selected_instances_[0], material);
       scene_->SetEntityMetadata(selected_instances_[0], metadata);
     }
   }
 
-  static char save_path[256] = "D:\\50hz\\Tsinghua\\Thrid_year-Autumn\\ACG\\project\\output_image.png";  // 默认路径
+  static char save_path[256] = "D:\\UserFiles\\Tsinghua\\2024FallGrade3\\ACG\\project\\3.png";  // 默认路径
 
   // 添加输入框来指定路径
   ImGui::InputText("Save Path", save_path, IM_ARRAYSIZE(save_path));
