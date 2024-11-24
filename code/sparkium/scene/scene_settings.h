@@ -19,10 +19,17 @@ struct SceneSettings {
   uint32_t num_entity{0};
   uint32_t enable_direct_lighting{0};
   uint32_t enable_volumetric_rendering{0};
-  uint32_t num_lens_sample{1};
-  float aperture{0};
-  float focal_distance{500};
-  float padding[2];
+
+  // for depth of field
+  float aperture{0};            // the aperture of the lens
+  float focal_distance{500};    // the distance from the focus plane to the lens
+
+  float padding1[3];
+
+  // for motion blur
+  glm::vec3 camera_velocity{0.0f};    // the velocity of the camera
+
+  float padding2[13];
 };  // need align to 64(0x40) byte
 
 }  // namespace sparkium

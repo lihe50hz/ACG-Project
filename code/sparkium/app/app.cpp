@@ -490,13 +490,12 @@ ImVec2 Application::ImGuiSettingsWindow() {
     render_settings_changed_ |=
         ImGui::SliderFloat("Clamp", &editing_scene_settings_.clamp_value, 1.0f,
                            10000.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
-    render_settings_changed_ |= ImGui::SliderInt(
-        "Lens Samples", reinterpret_cast<int *>(&editing_scene_settings_.num_lens_sample),
-        1, 128);
     render_settings_changed_ |= ImGui::SliderFloat(
         "Aperture", &editing_scene_settings_.aperture, 0.0f, 30.0f, "%.2f");
     render_settings_changed_ |= ImGui::SliderFloat(
         "Focal Distance", &editing_scene_settings_.focal_distance, 0.0f, 2000.0f, "%.2f");
+    render_settings_changed_ |= ImGui::SliderFloat3(
+        "Camera Velocity", &editing_scene_settings_.camera_velocity.x, -50.0f, 50.0f, "%.2f");
     render_settings_changed_ |=
         ImGui::Checkbox("Direct Lighting",
                         reinterpret_cast<bool *>(
@@ -547,6 +546,8 @@ ImVec2 Application::ImGuiSettingsWindow() {
           "%.4f", ImGuiSliderFlags_Logarithmic);
       render_settings_changed_ |= ImGui::SliderFloat2(
           "Detail Offset", &metadata.detail_scale_offset.z, 0.0f, 1.0f, "%.4f");
+      render_settings_changed_ |= ImGui::SliderFloat3(
+        "Velocity", &material.velocity.x, -50.0f, 50.0f, "%.2f");
 
       if (material.type == 2) {
         render_settings_changed_ |=

@@ -42,6 +42,8 @@ struct Material {
   float sigma_a;
   float sigma_s;
   float g;
+  
+  vec3 velocity;
 };
 
 #endif

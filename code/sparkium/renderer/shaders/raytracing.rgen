@@ -1004,6 +1004,26 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
     return accumulated_color;
 }
 
+// given origin and direction
+// check whether it is environment, and get the hitpoint
+// output the velocity of the object
+vec3 GetVelocity(vec3 origin, vec3 direction, out bool env, out vec3 hitpoint) {
+    ray_payload.t = -1.0;
+    TraceRay(origin, direction);
+
+    // hit environment
+    if (ray_payload.t == -1.0) {
+        env = true;
+        return vec3(0.0);
+    }
+    // hit object
+    else {
+        env = false;
+        hitpoint = origin + direction * ray_payload.t;
+        return materials[ray_payload.entity_id].velocity;
+    }
+}
+
 void main() {
   for (uint i = 0; i < scene_settings.num_sample; i++) {
     uint s = scene_settings.accumulated_sample + i;
@@ -1016,36 +1036,49 @@ void main() {
     proj[0][0] = 1.0 / proj[0][0];
     proj[1][1] = 1.0 / proj[1][1];
 
-    vec3 sampled_result = vec3(0.0);
-    // sample points on the lens
-    for (uint j = 0; j < scene_settings.num_lens_sample; j++) {
-        // sample a point on the lens
+    // the origin in camera coordination
+    vec3 cam_origin = vec3(0.0);
+
+    // the direction in camera coordination
+    vec4 target = vec4(d.x, -d.y, 0, 1) * proj;
+    vec3 cam_direction = normalize(target.xyz);
+
+    // consider depth of field
+    if (scene_settings.aperture > 1e-3) {
+        // sample a point on the lens, update origin
         vec2 offset = SampleCircle(scene_settings.aperture);
+        cam_origin += vec3(offset, 0.0);
 
-        // calculate the origin in camera coordination
-        vec3 cam_origin = vec3(offset, 0.0);
-
-        // calculate the original direction in camera coordination
-        vec4 target = vec4(d.x, -d.y, 0, 1) * proj;
-        vec3 cam_direction = normalize(target.xyz);
-
-        // calculate the intersection on the focus plane
+        // compute the intersection on the focus plane
         float t = abs(scene_settings.focal_distance / cam_direction.z);
         vec3 focus = t * cam_direction;
 
-        // calculate new direction in camera coordination
+        // update direction
         cam_direction = normalize(focus - cam_origin);
-
-        // transform to world coordination
-        vec4 origin = scene_settings.inv_view * vec4(cam_origin, 1.0);
-        vec4 direction = scene_settings.inv_view * vec4(cam_direction, 0.0);
-
-        float tmin = 0.001;
-        float tmax = 10000.0;
-
-        ray_payload.t = -1.0;
-        sampled_result += SampleRay(origin.xyz, direction.xyz) / scene_settings.num_lens_sample;
     }
+
+    // transform to world coordination
+    vec3 origin = (scene_settings.inv_view * vec4(cam_origin, 1.0)).xyz;
+    vec3 direction = (scene_settings.inv_view * vec4(cam_direction, 0.0)).xyz;
+
+    // get the hitpoint, velocity, and whether it's environment
+    vec3 hitpoint = vec3(0.0);
+    bool env;
+    vec3 v = GetVelocity(origin, direction, env, hitpoint);
+    vec3 v_r = v - scene_settings.camera_velocity;
+
+    // not environment light and have relative velocity
+    // consider motion blur
+    if (!env && dot(v_r, v_r) > 1e-3) {
+        vec3 sample_hitpoint = hitpoint + RandomFloat() * (-v_r); // tricky minus
+        direction = normalize(sample_hitpoint - origin);
+    }
+
+    float tmin = 0.001;
+    float tmax = 10000.0;
+
+    ray_payload.t = -1.0;
+    vec3 sampled_result = SampleRay(origin, direction);
 
     sampled_result = clamp(sampled_result, -scene_settings.clamp_value,
                            scene_settings.clamp_value);

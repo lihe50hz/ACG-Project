@@ -116,7 +116,7 @@
 
   1. Motion blur, depth of field (basic)
 
-     > registered by Chenglin Liu.
+     > implemented by Chenglin Liu.
 
   2. Alpha shadow (basic)
 
