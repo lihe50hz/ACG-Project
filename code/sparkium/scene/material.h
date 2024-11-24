@@ -27,7 +27,7 @@ struct Material {
 
   float sheen{0.0f};
   float sheen_tint{0.0f};
-  float clearcoat{1.0f};
+  float clearcoat{0.0f};
   float clearcoat_roughness{0.0f};
 
   float ior{1.00f};

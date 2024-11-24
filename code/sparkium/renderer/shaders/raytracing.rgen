@@ -96,6 +96,11 @@ vec3 EnvmapSample(vec3 direction) {
 
 Material GetMaterial(HitRecord hit_record) {
   Material material = materials[hit_record.entity_id];
+  if (hit_record.normal_texture_id != 0)
+      material.normal = SampleTextureLinear(
+              hit_record.normal_texture_id,
+              hit_record.tex_coord)
+              .xyz;
   material.normal = normalize(mat3(hit_record.tangent, hit_record.bitangent,
                                    hit_record.shading_normal) *
                               ((material.normal - 0.5) * 2.0));
@@ -119,7 +124,7 @@ vec3 LerpVec3(vec3 a, vec3 b, float alpha){
     return a * (1.0 - alpha) + b * alpha;
 }
 
-// Utility functions fir Fresnel
+// Utility functions for Fresnel
 float FresnelSchlick(float F0, float cosTheta){
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
@@ -167,6 +172,7 @@ float FresnelDielectric(float cosThetaI, float etaI, float etaT) {
     return reflectance;
 }
 
+// Disney BSDF Utilities
 vec3 CalculateTint(vec3 baseColor){
     float luminance  = dot(vec3(0.3, 0.6, 1.0), baseColor);
     return (luminance > 0.0) ? baseColor * (1.0 / luminance) : vec3(1.0);
@@ -510,10 +516,6 @@ vec3 SampleDisneyDiffuse(Material material, vec3 wo, bool thin, out float forwar
     vec3 wi = sign_ * SampleHemisphere(vec3(0.0,1.0,0.0));
 
     float dotNL = CosTheta(wi);
-    if(dotNL == 0.0) {
-        forwardPdf = 0.0;
-        return vec3(0.0);
-    }
     float pdf;
    
     float p = RandomFloat();
@@ -522,7 +524,7 @@ vec3 SampleDisneyDiffuse(Material material, vec3 wo, bool thin, out float forwar
         pdf = (1.0 - material.alpha);
     }
     else pdf = material.alpha;
-    forwardPdf = pdf * dotNL * abs(CosTheta(wo)) / PI;
+    forwardPdf = pdf * max(1e-3, dotNL) * abs(CosTheta(wo)) / PI;
     return normalize(wi);
 }
 
@@ -556,6 +558,7 @@ vec3 SampleDisneyClearcoat(Material material, vec3 wo, out float forwardPdf){
     return wi;
 }
 
+// For overllall Sampling and Evaluation
 uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, out vec3 wi, out float pdf, out bool trans) {
     uint type=0;
     wi = vec3(0.0);
@@ -563,8 +566,8 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
     trans = false;
     switch (material.type){
 		case MATERIAL_TYPE_LAMBERTIAN:
-			wi = SampleHemisphere(hit_record.shading_normal);
-            pdf = max(1e-3, abs(dot(wo, hit_record.shading_normal))) / PI;
+			wi = SampleHemisphere(material.normal);
+            pdf = max(1e-3, abs(dot(wo, material.normal))) * max(1e-3, abs(dot(wi, material.normal))) / PI;
 			break;
 		case MATERIAL_TYPE_SPECULAR:
 			wi = reflect(wo, hit_record.shading_normal);
@@ -618,7 +621,7 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
 vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3 wi, float P_RR, float pdf, uint type, bool trans) {
     switch (material.type){
 		case MATERIAL_TYPE_LAMBERTIAN:
-            return material.base_color * max(1e-3, abs(dot(wo, hit_record.shading_normal))) / PI / P_RR / pdf;
+            return material.base_color * max(1e-3, abs(dot(wo, material.normal))) * max(1e-3, abs(dot(wi, material.normal))) / PI / P_RR / pdf;
 			break;
 		case MATERIAL_TYPE_SPECULAR:
 			vec3 w_reflect = reflect(wo, hit_record.shading_normal);
@@ -652,7 +655,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
                     float diffuseWeight = (1.0 - material.metallic) * (1.0 - material.specular * material.transmission);
                     float diffuse = EvaluateDisneyDiffuse(material, wo, wm, wi, thin);
                     vec3 sheen = EvaluateSheen(material, wo, wm, wi);
-                    return (diffuse * material.base_color * max(1e-3, abs(CosTheta(wo))) + sheen) / P_RR / pdf;
+                    return (diffuse * material.base_color * max(1e-3, abs(CosTheta(wo))) * max(1e-3, abs(dot(wi, material.normal))) + sheen) / P_RR / pdf;
                     break;
                 case 2:
                     float rscaled = material.transmission_roughness;
@@ -675,13 +678,13 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
             break;
         case MATERIAL_TYPE_VOLUMETRIC:
             return vec3(1.0);
+            break;
 	}
     return vec3(0.0);
 }
 
 vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, vec3 wo, vec3 wm, float P_RR, uint type, out float pdf, bool trans){
     // Compute the direct lighting
-    // TODO: disable for transmissive
     vec3 color_direct = vec3(0.0);
     vec3 color_direct_direction = vec3(0.0);
     pdf = 0.0;
@@ -875,7 +878,7 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         // Get the hit record (intersection details, normal, material, etc.)
         HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
-
+        
         if (volumetric && outside && material.type == MATERIAL_TYPE_VOLUMETRIC) {
             outside = false;
             origin = hit_record.position;
