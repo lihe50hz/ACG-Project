@@ -8,6 +8,7 @@ constexpr uint32_t MATERIAL_TYPE_LAMBERTIAN = 0;
 constexpr uint32_t MATERIAL_TYPE_SPECULAR = 1;
 constexpr uint32_t MATERIAL_TYPE_PRINCIPLED = 2;
 constexpr uint32_t MATERIAL_TYPE_VOLUMETRIC = 3;
+constexpr uint32_t MATERIAL_TYPE_POINTLIGHT = 4;
 
 // clang-format off
 struct Material {
@@ -27,7 +28,7 @@ struct Material {
 
   float sheen{0.0f};
   float sheen_tint{0.0f};
-  float clearcoat{1.0f};
+  float clearcoat{0.0f};
   float clearcoat_roughness{0.0f};
 
   float ior{1.00f};
@@ -46,8 +47,10 @@ struct Material {
   float sigma_a{0.0f};  // absorption coefficient
   float sigma_s{0.0f};  // scattering coefficient
   float g{0.0f};        // asymmetry parameter for Henyey-Greenstein phase function
-
-  float paddings[1];
+  
+  float paddings_0;
+  glm::vec3 center{0.0f};
+  float paddings_1;
   // This structure needs to be padded to 16 bytes
 };
 // clang-format on

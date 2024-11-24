@@ -27,6 +27,11 @@ class Mesh {
     return indices_;
   }
 
+  void ThisIsPointLight() {
+    for (auto &vertex : vertices_)
+      vertex.position = vertex.position + glm::vec3{-131.452f, -114.514f, -191.981f};
+  }
+
  private:
   void MergeVertices();
 

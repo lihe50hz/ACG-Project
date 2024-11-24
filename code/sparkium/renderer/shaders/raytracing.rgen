@@ -96,6 +96,11 @@ vec3 EnvmapSample(vec3 direction) {
 
 Material GetMaterial(HitRecord hit_record) {
   Material material = materials[hit_record.entity_id];
+  if (hit_record.normal_texture_id != 0)
+      material.normal = SampleTextureLinear(
+              hit_record.normal_texture_id,
+              hit_record.tex_coord)
+              .xyz;
   material.normal = normalize(mat3(hit_record.tangent, hit_record.bitangent,
                                    hit_record.shading_normal) *
                               ((material.normal - 0.5) * 2.0));
@@ -119,7 +124,7 @@ vec3 LerpVec3(vec3 a, vec3 b, float alpha){
     return a * (1.0 - alpha) + b * alpha;
 }
 
-// Utility functions fir Fresnel
+// Utility functions for Fresnel
 float FresnelSchlick(float F0, float cosTheta){
 	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
@@ -167,6 +172,7 @@ float FresnelDielectric(float cosThetaI, float etaI, float etaT) {
     return reflectance;
 }
 
+// Disney BSDF Utilities
 vec3 CalculateTint(vec3 baseColor){
     float luminance  = dot(vec3(0.3, 0.6, 1.0), baseColor);
     return (luminance > 0.0) ? baseColor * (1.0 / luminance) : vec3(1.0);
@@ -510,10 +516,6 @@ vec3 SampleDisneyDiffuse(Material material, vec3 wo, bool thin, out float forwar
     vec3 wi = sign_ * SampleHemisphere(vec3(0.0,1.0,0.0));
 
     float dotNL = CosTheta(wi);
-    if(dotNL == 0.0) {
-        forwardPdf = 0.0;
-        return vec3(0.0);
-    }
     float pdf;
    
     float p = RandomFloat();
@@ -522,7 +524,7 @@ vec3 SampleDisneyDiffuse(Material material, vec3 wo, bool thin, out float forwar
         pdf = (1.0 - material.alpha);
     }
     else pdf = material.alpha;
-    forwardPdf = pdf * dotNL * abs(CosTheta(wo)) / PI;
+    forwardPdf = pdf * max(1e-3, dotNL) * abs(CosTheta(wo)) / PI;
     return normalize(wi);
 }
 
@@ -556,6 +558,7 @@ vec3 SampleDisneyClearcoat(Material material, vec3 wo, out float forwardPdf){
     return wi;
 }
 
+// For overllall Sampling and Evaluation
 uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, out vec3 wi, out float pdf, out bool trans) {
     uint type=0;
     wi = vec3(0.0);
@@ -563,8 +566,8 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
     trans = false;
     switch (material.type){
 		case MATERIAL_TYPE_LAMBERTIAN:
-			wi = SampleHemisphere(hit_record.shading_normal);
-            pdf = max(1e-3, abs(dot(wo, hit_record.shading_normal))) / PI;
+			wi = SampleHemisphere(material.normal);
+            pdf = max(1e-3, abs(dot(wo, material.normal))) * max(1e-3, abs(dot(wi, material.normal))) / PI;
 			break;
 		case MATERIAL_TYPE_SPECULAR:
 			wi = reflect(wo, hit_record.shading_normal);
@@ -611,6 +614,10 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
             wi = wo;
             pdf = 1.0;
             break;
+        case MATERIAL_TYPE_POINTLIGHT:
+            wi = wo;
+            pdf = 1.0;
+            break;
 	}
     return type;
 }
@@ -618,7 +625,7 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
 vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3 wi, float P_RR, float pdf, uint type, bool trans) {
     switch (material.type){
 		case MATERIAL_TYPE_LAMBERTIAN:
-            return material.base_color * max(1e-3, abs(dot(wo, hit_record.shading_normal))) / PI / P_RR / pdf;
+            return material.base_color * max(1e-3, abs(dot(wo, material.normal))) * max(1e-3, abs(dot(wi, material.normal))) / PI / P_RR / pdf;
 			break;
 		case MATERIAL_TYPE_SPECULAR:
 			vec3 w_reflect = reflect(wo, hit_record.shading_normal);
@@ -652,7 +659,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
                     float diffuseWeight = (1.0 - material.metallic) * (1.0 - material.specular * material.transmission);
                     float diffuse = EvaluateDisneyDiffuse(material, wo, wm, wi, thin);
                     vec3 sheen = EvaluateSheen(material, wo, wm, wi);
-                    return (diffuse * material.base_color * max(1e-3, abs(CosTheta(wo))) + sheen) / P_RR / pdf;
+                    return (diffuse * material.base_color * max(1e-3, abs(CosTheta(wo))) * max(1e-3, abs(dot(wi, material.normal))) + sheen) / P_RR / pdf;
                     break;
                 case 2:
                     float rscaled = material.transmission_roughness;
@@ -675,13 +682,16 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
             break;
         case MATERIAL_TYPE_VOLUMETRIC:
             return vec3(1.0);
+            break;
+        case MATERIAL_TYPE_POINTLIGHT:
+            return vec3(1.0);
+            break;
 	}
     return vec3(0.0);
 }
 
 vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, vec3 wo, vec3 wm, float P_RR, uint type, out float pdf, bool trans){
     // Compute the direct lighting
-    // TODO: disable for transmissive
     vec3 color_direct = vec3(0.0);
     vec3 color_direct_direction = vec3(0.0);
     pdf = 0.0;
@@ -717,6 +727,36 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
     // If we have sampled an entity, sample a triangle
     random_number = RandomFloat();
     if (sampled_entity_id != -1){
+        // Deal with point light
+        Material light_material = materials[sampled_entity_id];
+        if (light_material.type == MATERIAL_TYPE_POINTLIGHT){
+            vec3 sampled_point = light_material.center;
+            vec3 light_direction = origin - sampled_point;
+            float light_distance = length(light_direction);
+            light_direction = normalize(light_direction);
+            color_direct_direction = normalize(sampled_point - origin);
+            TraceRay(sampled_point, light_direction);
+            if (ray_payload.t > light_distance - 1e-3){
+                // Origin
+                Material origin_material = material;
+                vec3 origin_normal = origin_material.normal;
+                // Light
+                vec3 emission = light_material.emission;
+                float emission_strength = light_material.emission_strength;
+
+			    // Compute the direct lighting and right normals
+                float origin_cos = max(1e-3, abs(dot(origin_normal, light_direction)));
+                vec3 light_intrinsic = emission * emission_strength;
+			    float light_attenuation = origin_cos / (light_distance * light_distance);
+                pdf = sampled_probability / light_attenuation;
+			    color_direct = light_intrinsic * 5000;
+		    }
+            // Return the direct lighting
+            if (length(color_direct) > 1e-6) // Sampled direct light is not none
+                return color_direct * EvaluateAll(hit_record, material, wo, wm, color_direct_direction, P_RR, pdf, type, trans);
+            return vec3(0.0);
+        }
+
         // Get metadata
         uint mesh_id = metadatas[sampled_entity_id].mesh_id;
         uint num_triangles = mesh_metadatas[mesh_id].num_index / 3;
@@ -764,6 +804,7 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
         TraceRay(sampled_point, light_direction);
 
         if (ray_payload.t > light_distance - 1e-3){
+            
             // Origin
             Material origin_material = material;
             vec3 origin_normal = origin_material.normal;
@@ -875,7 +916,7 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         // Get the hit record (intersection details, normal, material, etc.)
         HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
-
+        
         if (volumetric && outside && material.type == MATERIAL_TYPE_VOLUMETRIC) {
             outside = false;
             origin = hit_record.position;
@@ -884,17 +925,18 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         }
         if (outside) {
             // Multiple importance sampling on light, compute shading
-            if (material.emission_strength > 1e-4){ // When indirect light hit the light source
-                vec3 color_light = material.emission * material.emission_strength;
-                if (scene_settings.enable_direct_lighting && color_direct_pdf > 1e-6){ // Multiple importance sampling
-                    accumulated_color += accumulated_coef * (color_direct_pdf * color_direct) / (color_direct_pdf + color_indirect_pdf);
-                    accumulated_color += accumulated_coef * (color_indirect_pdf * color_light) / (color_direct_pdf + color_indirect_pdf);
+            if (material.type != MATERIAL_TYPE_POINTLIGHT){
+                if (material.emission_strength > 1e-4){ // When indirect light hit the light source
+                    vec3 color_light = material.emission * material.emission_strength;
+                    if (scene_settings.enable_direct_lighting && color_direct_pdf > 1e-6){ // Multiple importance sampling
+                        accumulated_color += accumulated_coef * (color_direct_pdf * color_direct) / (color_direct_pdf + color_indirect_pdf);
+                        accumulated_color += accumulated_coef * (color_indirect_pdf * color_light) / (color_direct_pdf + color_indirect_pdf);
+                    }
+                    else accumulated_color += accumulated_coef * color_light;// No direct light case
                 }
-                else accumulated_color += accumulated_coef * color_light;// No direct light case
-                    
+                else accumulated_color += accumulated_coef * color_direct;// Otherwise, only direct light
             }
-            else accumulated_color += accumulated_coef * color_direct;// Otherwise, only direct light
-    
+           
             // Russian Roulette termination condition
             float ksi = RandomFloat();
             if (ksi > P_RR) break;

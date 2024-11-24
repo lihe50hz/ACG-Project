@@ -93,6 +93,10 @@ class Scene {
   int GetEntityAlbedoDetailTexture(uint32_t entity_id,
                                    uint32_t &texture_id) const;
 
+  int SetEntityNormalTexture(uint32_t entity_id, uint32_t texture_id);
+
+  int GetEntityNormalTexture(uint32_t entity_id, uint32_t texture_id) const;
+
   int SetEntityDetailScaleOffset(uint32_t entity_id,
                                  const glm::vec4 &scale_offset);
 
