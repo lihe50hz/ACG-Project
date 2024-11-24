@@ -792,12 +792,16 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 
 }
 
+// sample according to exponential distribution
 float SampleExponential(float sigma) {
     float u = RandomFloat();
     return -log(u) / sigma;
 }
 
+// sample according to Henyey-Greenstein distribution
+// input the direction before scattering, output the sampled direction after scattering
 vec3 SampleHG(float g, vec3 dir) {
+    // sample local spherical coordinate
     float u_1 = RandomFloat();
     float u_2 = RandomFloat();
     float cos_theta;
@@ -810,20 +814,29 @@ vec3 SampleHG(float g, vec3 dir) {
     float sin_theta = sqrt(1 - cos_theta * cos_theta);
     float phi = 2 * PI * u_2;
 
-    // Normalize dir to form z'
+    // normalize dir to form z'
     vec3 zAxis = dir;
 
-    // Compute x' (arbitrary perpendicular vector to z')
+    // compute x' (arbitrary perpendicular vector to z')
     vec3 xAxis = normalize(vec3(-zAxis.z, 0.0, zAxis.x));
     
-    // Compute y' as cross product
+    // compute y' as cross product
     vec3 yAxis = cross(zAxis, xAxis);
 
-    // Convert spherical to cartesian
+    // convert spherical to cartesian
     vec3 localCartesian = vec3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
 
-    // Transform to original coordinate system
+    // transform to original coordinate system
     return localCartesian.x * xAxis + localCartesian.y * yAxis + localCartesian.z * zAxis;
+}
+
+// sample a point uniformly in a circle with radius
+vec2 SampleCircle(float radius) {
+    float u = RandomFloat();
+    float v = RandomFloat();
+    float r = radius * sqrt(u);
+    float theta = 2 * PI * v;
+    return vec2(r * cos(theta), r * sin(theta));
 }
 
 vec3 SampleRay(vec3 origin, vec3 direction) {
@@ -1003,15 +1016,36 @@ void main() {
     proj[0][0] = 1.0 / proj[0][0];
     proj[1][1] = 1.0 / proj[1][1];
 
-    vec4 origin = scene_settings.inv_view[3];  // * vec4(0, 0, 0, 1);
-    vec4 target = vec4(d.x, -d.y, 0, 1) * proj;
-    vec4 direction = scene_settings.inv_view * vec4(normalize(target.xyz), 0);
+    vec3 sampled_result = vec3(0.0);
+    // sample points on the lens
+    for (uint j = 0; j < scene_settings.num_lens_sample; j++) {
+        // sample a point on the lens
+        vec2 offset = SampleCircle(scene_settings.aperture);
 
-    float tmin = 0.001;
-    float tmax = 10000.0;
+        // calculate the origin in camera coordination
+        vec3 cam_origin = vec3(offset, 0.0);
 
-    ray_payload.t = -1.0;
-    vec3 sampled_result = SampleRay(origin.xyz, direction.xyz);
+        // calculate the original direction in camera coordination
+        vec4 target = vec4(d.x, -d.y, 0, 1) * proj;
+        vec3 cam_direction = normalize(target.xyz);
+
+        // calculate the intersection on the focus plane
+        float t = abs(scene_settings.focal_distance / cam_direction.z);
+        vec3 focus = t * cam_direction;
+
+        // calculate new direction in camera coordination
+        cam_direction = normalize(focus - cam_origin);
+
+        // transform to world coordination
+        vec4 origin = scene_settings.inv_view * vec4(cam_origin, 1.0);
+        vec4 direction = scene_settings.inv_view * vec4(cam_direction, 0.0);
+
+        float tmin = 0.001;
+        float tmax = 10000.0;
+
+        ray_payload.t = -1.0;
+        sampled_result += SampleRay(origin.xyz, direction.xyz) / scene_settings.num_lens_sample;
+    }
 
     sampled_result = clamp(sampled_result, -scene_settings.clamp_value,
                            scene_settings.clamp_value);

@@ -88,31 +88,35 @@
 
 - Volumetric Rendering: Options include:
 
-  1. Homogeneous volume rendering with subsurface scattering and volumetric lighting (2pts)
+  1. Subsurface scattering (2pts)
 
      > Waiting for register.
 
-  2. Channel-independent subsurface scattering (1pt)
+  2. Homogeneous volume rendering (1pt)
 
-     > Waiting for register.
+     > implemented by Chenglin Liu.
 
   3. Inhomogeneous volume rendering (1pt)
 
-     > Waiting for register.
+     > registered by Chenglin Liu.
 
-  4. Volumetric emission (1pt)
+  4. Channel-independent subsurface scattering (1pt)
 
-     > Waiting for register.
+     > registered by Chenglin Liu.
 
-  5. Volumetric alpha shadow (2pts)
+  5. Volumetric emission (1pt)
 
-     > Waiting for register.
+     > implemented by Chenglin Liu.
+
+  6. Volumetric alpha shadow (2pts)
+
+     > registered by Chenglin Liu.
 
 - Special Visual Effects: Options include:
 
   1. Motion blur, depth of field (basic)
 
-     > Waiting for register.
+     > registered by Chenglin Liu.
 
   2. Alpha shadow (basic)
 
@@ -151,15 +155,19 @@
 # Sparkium Renderer (星火渲染器-开源版)
 
 <!-- TOC -->
-* [Sparkium Renderer (星火渲染器-开源版)](#sparkium-renderer-星火渲染器)
-  * [简介](#简介)
-  * [硬件要求](#硬件要求)
-  * [编译环境配置](#编译环境配置)
-    * [依赖项](#依赖项)
-    * [编译步骤](#编译步骤)
-    * [注意事项](#注意事项)
-  * [如何上手](#如何上手)
-  <!-- TOC -->
+- [ACG-Project](#acg-project)
+  - [Description](#description)
+  - [Preparing work (For Visual Studio 2022 on Windows)](#preparing-work-for-visual-studio-2022-on-windows)
+  - [Project Details](#project-details)
+  - [Comment](#comment)
+- [Sparkium Renderer (星火渲染器-开源版)](#sparkium-renderer-星火渲染器-开源版)
+  - [简介](#简介)
+  - [硬件要求](#硬件要求)
+  - [编译环境配置](#编译环境配置)
+    - [依赖项](#依赖项)
+    - [编译步骤](#编译步骤)
+    - [注意事项](#注意事项)
+  - [如何上手](#如何上手)
 
 ## 简介
 

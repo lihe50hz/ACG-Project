@@ -222,9 +222,9 @@ void Application::OnRender() {
       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT);
 
-  // ¼ì²éÊÇ·ñÐèÒª±£´æÍ¼Æ¬
+  // ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½Í¼Æ¬
   if (save_image_) {
-    save_image_ = false;  // ÖØÖÃ±êÖ¾Î»
+    save_image_ = false;  // ï¿½ï¿½ï¿½Ã±ï¿½Ö¾Î»
     VkExtent2D extent = core_->Swapchain()->Extent();
     std::vector<uint8_t> image_data(extent.width * extent.height * 4);
     raytracing_film_->result_image->FetchPixelData(
@@ -232,7 +232,7 @@ void Application::OnRender() {
         VkRect2D{{0, 0}, {extent.width, extent.height}}, image_data.data(),
         image_data.size());
 
-    // Ê¹ÓÃstb_image_write±£´æÍ¼Æ¬µ½Ö¸¶¨Â·¾¶
+    // Ê¹ï¿½ï¿½stb_image_writeï¿½ï¿½ï¿½ï¿½Í¼Æ¬ï¿½ï¿½Ö¸ï¿½ï¿½Â·ï¿½ï¿½
     stbi_write_png(save_image_path_.c_str(), extent.width, extent.height, 4,
                    image_data.data(), extent.width * 4);
   }
@@ -490,6 +490,13 @@ ImVec2 Application::ImGuiSettingsWindow() {
     render_settings_changed_ |=
         ImGui::SliderFloat("Clamp", &editing_scene_settings_.clamp_value, 1.0f,
                            10000.0f, "%.2f", ImGuiSliderFlags_Logarithmic);
+    render_settings_changed_ |= ImGui::SliderInt(
+        "Lens Samples", reinterpret_cast<int *>(&editing_scene_settings_.num_lens_sample),
+        1, 128);
+    render_settings_changed_ |= ImGui::SliderFloat(
+        "Aperture", &editing_scene_settings_.aperture, 0.0f, 30.0f, "%.2f");
+    render_settings_changed_ |= ImGui::SliderFloat(
+        "Focal Distance", &editing_scene_settings_.focal_distance, 0.0f, 2000.0f, "%.2f");
     render_settings_changed_ |=
         ImGui::Checkbox("Direct Lighting",
                         reinterpret_cast<bool *>(
@@ -604,15 +611,15 @@ ImVec2 Application::ImGuiSettingsWindow() {
     }
   }
 
-  static char save_path[256] = "D:\\UserFiles\\Tsinghua\\2024FallGrade3\\ACG\\project\\3.png";  // Ä¬ÈÏÂ·¾¶
+  static char save_path[256] = "D:\\UserFiles\\Tsinghua\\2024FallGrade3\\ACG\\project\\3.png";  // Ä¬ï¿½ï¿½Â·ï¿½ï¿½
 
-  // Ìí¼ÓÊäÈë¿òÀ´Ö¸¶¨Â·¾¶
+  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½Â·ï¿½ï¿½
   ImGui::InputText("Save Path", save_path, IM_ARRAYSIZE(save_path));
 
-  // ÕûºÏ±£´æ°´Å¥
+  // ï¿½ï¿½ï¿½Ï±ï¿½ï¿½æ°´Å¥
   if (ImGui::Button("Save Rendered Image")) {
-    save_image_ = true;  // ÉèÖÃ±êÖ¾Î»£¬Í¨ÖªOnRender±£´æÎÄ¼þ
-    save_image_path_ = std::string(save_path);  // ÉèÖÃ±£´æÂ·¾¶
+    save_image_ = true;  // ï¿½ï¿½ï¿½Ã±ï¿½Ö¾Î»ï¿½ï¿½Í¨ÖªOnRenderï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
+    save_image_path_ = std::string(save_path);  // ï¿½ï¿½ï¿½Ã±ï¿½ï¿½ï¿½Â·ï¿½ï¿½
   }
 
   ImGui::End();

@@ -19,7 +19,10 @@ struct SceneSettings {
   uint32_t num_entity{0};
   uint32_t enable_direct_lighting{0};
   uint32_t enable_volumetric_rendering{0};
-  float padding[5];
+  uint32_t num_lens_sample{1};
+  float aperture{0};
+  float focal_distance{500};
+  float padding[2];
 };  // need align to 64(0x40) byte
 
 }  // namespace sparkium

@@ -17,6 +17,9 @@ struct SceneSettings {
   uint num_entity;
   bool enable_direct_lighting;
   bool enable_volumetric_rendering;
+  uint num_lens_sample;
+  float aperture;
+  float focal_distance;
 };
 
 #endif
