@@ -833,7 +833,7 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
     vec3 accumulated_coef = vec3(1.0);
     uint max_depth = scene_settings.num_bounces;
 
-    bool outside = true;
+    bool outside = true; // whether the ray is currently outside any object
     bool volumetric = scene_settings.enable_volumetric_rendering;
 
     // Coefficient for compute shading
@@ -876,12 +876,14 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
 
+        // enable volumetric, and the ray will enter a volumetric object
         if (volumetric && outside && material.type == MATERIAL_TYPE_VOLUMETRIC) {
             outside = false;
-            origin = hit_record.position;
+            origin = hit_record.position; // directly enter the object
             accumulated_color += accumulated_coef * color_direct;
             continue;
         }
+        // not enable volumetric, or the ray interacts with non-volumetric object
         if (outside) {
             // Multiple importance sampling on light, compute shading
             if (material.emission_strength > 1e-4){ // When indirect light hit the light source
@@ -922,35 +924,46 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
 
             depth++;
         }
+        // the ray is in a volumetric object, use volumetric rendering 
+        // no direct lighting, no Russian Roulette
         else {
             bool terminated = false;
             bool scattered = false;
+            // while loop for sampling t in the volumetric object
             while (true) {
+                // the majorant for homogeneous media
                 float sigma_maj = material.sigma_a + material.sigma_s;
 
+                // do not set absorption or scattering, directly exit the object
                 if (sigma_maj < 1e-4)
                     break;
 
+                // sample t using exponential distribution
                 float t_sp = SampleExponential(sigma_maj);
+                // exit the object
                 if (t_sp > ray_payload.t)
                     break;
 
+                // probability for 3 kinds of events
                 float p_absorb = material.sigma_a / sigma_maj;
                 float p_scatter = material.sigma_s / sigma_maj;
                 float p_null = max(1 - p_absorb - p_scatter, 0.0f);
                 float u = RandomFloat();
                 
+                // emission event, exit the outer loop
                 if (u < p_absorb) {
                     accumulated_color += accumulated_coef * material.l_e * material.l_e_strength;
                     terminated = true;
                     break;
                 }
+                // scattering event, sample a direction, continue the outer loop
                 else if (u < p_absorb + p_scatter) {
                     origin = origin + direction * t_sp;
                     direction = SampleHG(material.g, direction);
                     scattered = true;
                     break;
                 }
+                // null event, continue sampling t
                 else {
                     continue;
                 }
@@ -961,9 +974,11 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
                 depth++;
                 continue;
             }
+            // exit the object
             outside = true;
             origin = hit_record.position;
 
+            // Update the ray origin and direction for the next bounce
             last_direction = direction;
             last_material = material;
             last_hit_record = hit_record;
