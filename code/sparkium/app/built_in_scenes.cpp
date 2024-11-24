@@ -335,6 +335,14 @@ void LoadCornellBox(Scene *scene) {
   scene->SetEntityNormalTexture(back_wall_id, normal_texture_id);
 
   scene->SetEnvmapSettings({0.0f, 0.0f, 0, 0});
+  auto envmap = scene->GetEnvMap();
+
+  Texture envmap_texture;
+  envmap_texture.LoadFromFile(FindAssetsFile("texture/envmap_clouds_4k.hdr"),
+                              LDRColorSpace::UNORM);
+  auto envmap_id = asset_manager->LoadTexture(envmap_texture, "Envmap");
+  envmap->SetEnvmapTexture(envmap_id);
+  scene->SetEnvmapSettings({0.0f, 1.0f, uint32_t(envmap_id), 0});
 
   scene->Camera()->SetPosition({278.0f, 273.0f, -800.0f});
   scene->Camera()->SetEulerAngles({0.0f, glm::radians(180.0f), 0.0f});
