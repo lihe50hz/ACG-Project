@@ -524,10 +524,10 @@ ImVec2 Application::ImGuiSettingsWindow() {
           asset_manager_->ComboForMeshSelection("Mesh", &metadata.mesh_id);
 
       const char *material_type_names[] = {"Lambertian", "Specular",
-                                           "Principled", "Volumetric"};
+                                           "Principled", "Volumetric", "Pointlight"};
       render_settings_changed_ |=
           ImGui::Combo("Material Type", reinterpret_cast<int *>(&material.type),
-                       material_type_names, 4);
+                       material_type_names, 5);
 
       render_settings_changed_ |=
           ImGui::ColorEdit3("Base Color", &material.base_color.r);

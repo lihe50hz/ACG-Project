@@ -134,7 +134,7 @@
 
   1. Point light and area light (basic)
 
-     > Waiting for register.
+     > He Li has implemented this.
 
   2. Environment lighting with HDR, such as skybox (2pts)
 

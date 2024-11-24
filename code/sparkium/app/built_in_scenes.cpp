@@ -39,8 +39,8 @@ void LoadCornellBox(Scene *scene) {
       asset_manager->LoadMesh(Mesh(vertices, indices), "LightMesh");
   Material light_material;
   light_material.base_color = {0.0f, 0.0f, 0.0f};
-  light_material.emission = {1.0f, 1.0f, 1.0f};
-  light_material.emission_strength = 100.0f;
+  /*light_material.emission = {1.0f, 1.0f, 1.0f};
+  light_material.emission_strength = 100.0f;*/
   int light_id = scene->CreateEntity();
   scene->SetEntityMesh(light_id, light_mesh_id);
   scene->SetEntityMaterial(light_id, light_material);
@@ -309,15 +309,20 @@ void LoadCornellBox(Scene *scene) {
 
 
 
-  /*Mesh test;
+  Mesh test;
   test.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  test.ThisIsPointLight();
   int test_mesh_id = asset_manager->LoadMesh(test, "Cube");
   Material test_material;
   test_material.base_color = {0.0f, 0.0f, 0.8f};
+  test_material.emission = {1.0f, 1.0f, 1.0f};
+  test_material.emission_strength = 100.0f;
+  test_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
+  test_material.center = {343.0f, 530.0f, 227.0f};
+  
   int test_id = scene->CreateEntity();
   scene->SetEntityMesh(test_id, test_mesh_id);
-  scene->SetEntityMaterial(test_id, test_material);*/
-
+  scene->SetEntityMaterial(test_id, test_material);
   Texture milkdragon_texture;
   milkdragon_texture.LoadFromFile(
       FindAssetsFile("texture/milkdragon.png"),
@@ -335,14 +340,14 @@ void LoadCornellBox(Scene *scene) {
   scene->SetEntityNormalTexture(back_wall_id, normal_texture_id);
 
   scene->SetEnvmapSettings({0.0f, 0.0f, 0, 0});
-  auto envmap = scene->GetEnvMap();
+  /*auto envmap = scene->GetEnvMap();
 
   Texture envmap_texture;
   envmap_texture.LoadFromFile(FindAssetsFile("texture/envmap_clouds_4k.hdr"),
                               LDRColorSpace::UNORM);
   auto envmap_id = asset_manager->LoadTexture(envmap_texture, "Envmap");
   envmap->SetEnvmapTexture(envmap_id);
-  scene->SetEnvmapSettings({0.0f, 1.0f, uint32_t(envmap_id), 0});
+  scene->SetEnvmapSettings({0.0f, 1.0f, uint32_t(envmap_id), 0});*/
 
   scene->Camera()->SetPosition({278.0f, 273.0f, -800.0f});
   scene->Camera()->SetEulerAngles({0.0f, glm::radians(180.0f), 0.0f});
