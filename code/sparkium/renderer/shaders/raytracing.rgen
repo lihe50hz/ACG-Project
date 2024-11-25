@@ -1067,10 +1067,11 @@ void main() {
     vec3 v = GetVelocity(origin, direction, env, hitpoint);
     vec3 v_r = v - scene_settings.camera_velocity;
 
-    // not environment light and have relative velocity
+    // not environment light, have relative velocity, decay not too small
     // consider motion blur
-    if (!env && dot(v_r, v_r) > 1e-3) {
-        vec3 sample_hitpoint = hitpoint + RandomFloat() * (-v_r); // tricky minus
+    if (!env && dot(v_r, v_r) > 1e-3 && scene_settings.blur_decay > 1e-3) {
+        float s = SampleExponential(scene_settings.blur_decay); // exponential decay weight
+        vec3 sample_hitpoint = hitpoint + s * (-v_r); // tricky minus
         direction = normalize(sample_hitpoint - origin);
     }
 

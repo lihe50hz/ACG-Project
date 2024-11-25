@@ -94,7 +94,7 @@
 
   2. Homogeneous volume rendering (1pt)
 
-     > implemented by Chenglin Liu.
+     > Chenglin Liu has implemented this.
 
   3. Inhomogeneous volume rendering (1pt)
 
@@ -106,7 +106,7 @@
 
   5. Volumetric emission (1pt)
 
-     > implemented by Chenglin Liu.
+     > Chenglin Liu has implemented this.
 
   6. Volumetric alpha shadow (2pts)
 
@@ -116,7 +116,7 @@
 
   1. Motion blur, depth of field (basic)
 
-     > implemented by Chenglin Liu.
+     > Chenglin Liu has implemented this.
 
   2. Alpha shadow (basic)
 

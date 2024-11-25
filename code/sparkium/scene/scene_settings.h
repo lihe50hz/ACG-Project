@@ -28,8 +28,9 @@ struct SceneSettings {
 
   // for motion blur
   glm::vec3 camera_velocity{0.0f};    // the velocity of the camera
+  float blur_decay{1.0f};             // the decay for motion blur
 
-  float padding2[13];
+  float padding2[12];
 };  // need align to 64(0x40) byte
 
 }  // namespace sparkium

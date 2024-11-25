@@ -20,6 +20,7 @@ struct SceneSettings {
   float aperture;
   float focal_distance;
   vec3 camera_velocity;
+  float blur_decay;
 };
 
 #endif

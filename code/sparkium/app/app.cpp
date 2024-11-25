@@ -495,7 +495,9 @@ ImVec2 Application::ImGuiSettingsWindow() {
     render_settings_changed_ |= ImGui::SliderFloat(
         "Focal Distance", &editing_scene_settings_.focal_distance, 0.0f, 2000.0f, "%.2f");
     render_settings_changed_ |= ImGui::SliderFloat3(
-        "Camera Velocity", &editing_scene_settings_.camera_velocity.x, -50.0f, 50.0f, "%.2f");
+        "Camera Velocity", &editing_scene_settings_.camera_velocity.x, -30.0f, 30.0f, "%.2f");
+    render_settings_changed_ |= ImGui::SliderFloat(
+        "Motion Blur Decay", &editing_scene_settings_.blur_decay, 0.1f, 2.0f, "%.2f");
     render_settings_changed_ |=
         ImGui::Checkbox("Direct Lighting",
                         reinterpret_cast<bool *>(
@@ -547,7 +549,7 @@ ImVec2 Application::ImGuiSettingsWindow() {
       render_settings_changed_ |= ImGui::SliderFloat2(
           "Detail Offset", &metadata.detail_scale_offset.z, 0.0f, 1.0f, "%.4f");
       render_settings_changed_ |= ImGui::SliderFloat3(
-        "Velocity", &material.velocity.x, -50.0f, 50.0f, "%.2f");
+        "Velocity", &material.velocity.x, -30.0f, 30.0f, "%.2f");
 
       if (material.type == 2) {
         render_settings_changed_ |=
