@@ -332,6 +332,23 @@ int Scene::GetEntityAlbedoDetailTexture(uint32_t entity_id,
   return 0;
 }
 
+int Scene::SetEntityNormalTexture(uint32_t entity_id, uint32_t texture_id) {
+  if (entities_.find(entity_id) == entities_.end()) {
+    return -1;
+  }
+  entities_[entity_id]->metadata_.normal_texture_id = texture_id;
+  return 0;
+}
+
+int Scene::GetEntityNormalTexture(uint32_t entity_id,
+                                  uint32_t texture_id) const {
+  if (entities_.find(entity_id) == entities_.end()) {
+    return -1;
+  }
+  texture_id = entities_.at(entity_id)->metadata_.normal_texture_id;
+  return 0;
+}
+
 int Scene::SetEntityDetailScaleOffset(uint32_t entity_id,
                                       const glm::vec4 &scale_offset) {
   if (entities_.find(entity_id) == entities_.end()) {

@@ -16,6 +16,11 @@ struct SceneSettings {
   float total_emission_energy;
   uint num_entity;
   bool enable_direct_lighting;
+  bool enable_volumetric_rendering;
+  float aperture;
+  float focal_distance;
+  vec3 camera_velocity;
+  float blur_decay;
 };
 
 #endif

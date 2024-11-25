@@ -9,7 +9,7 @@
 #include "ray_payload.glsl"
 #include "scene_settings.glsl"
 
-Material material;
+//Material material;
 
 layout(set = 0, binding = 0, std140) uniform SceneSettingsUniform {
   SceneSettings scene_settings;
@@ -74,6 +74,10 @@ layout(location = 0) rayPayloadEXT RayPayload ray_payload;
 #include "shadow_ray.glsl"
 #include "trace_ray.glsl"
 
+float CosTheta(vec3 w){
+    return w.y;
+}
+
 vec4 SampleTextureLinear(uint texture_id, vec2 uv) {
   return texture(sampler2D(sampled_textures[texture_id], samplers[0]), uv);
 }
@@ -92,6 +96,11 @@ vec3 EnvmapSample(vec3 direction) {
 
 Material GetMaterial(HitRecord hit_record) {
   Material material = materials[hit_record.entity_id];
+  if (hit_record.normal_texture_id != 0)
+      material.normal = SampleTextureLinear(
+              hit_record.normal_texture_id,
+              hit_record.tex_coord)
+              .xyz;
   material.normal = normalize(mat3(hit_record.tangent, hit_record.bitangent,
                                    hit_record.shading_normal) *
                               ((material.normal - 0.5) * 2.0));
@@ -106,7 +115,294 @@ Material GetMaterial(HitRecord hit_record) {
   return material;
 }
 
-// Sample a random point on the hemisphere with a cosine-weighted distribution
+// Utility functions for lerp
+float LerpFloat(float a, float b, float alpha){
+    return a * (1.0 - alpha) + b * alpha;
+}
+
+vec3 LerpVec3(vec3 a, vec3 b, float alpha){
+    return a * (1.0 - alpha) + b * alpha;
+}
+
+// Utility functions for Fresnel
+float FresnelSchlick(float F0, float cosTheta){
+	return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
+vec3 FresnelSchlickVec3(vec3 R0, float cosTheta){
+	return R0 + (vec3(1.0) - R0) * pow(1.0 - cosTheta, 5.0);
+}
+
+float FresnelSchlickWeight(float cosTheta){
+	return pow(1.0 - cosTheta, 5.0);
+}
+
+float FresnelSchlickR0FromRelativeIOR(float relativeIOR) {
+    // Compute (eta - 1) / (eta + 1)
+    float etaMinusOne = relativeIOR - 1.0;
+    float etaPlusOne = relativeIOR + 1.0;
+
+    // Compute R0
+    float r0 = (etaMinusOne / etaPlusOne);
+    return r0 * r0;
+}
+
+float FresnelDielectric(float cosThetaI, float etaI, float etaT) {
+    cosThetaI = abs(clamp(cosThetaI, -1.0, 1.0));
+
+    float etaIncident = etaI;
+    float etaTransmitted = etaT;
+
+    // Compute sin squared of transmitted angle using Snell's Law
+    float sinThetaI = sqrt(max(0.0, 1.0 - cosThetaI * cosThetaI));
+    float sinThetaT = etaIncident / etaTransmitted * sinThetaI;
+
+    // Total internal reflectiona
+    if (sinThetaT >= 1.0) return 1.0;
+
+    float cosThetaT = sqrt(max(0.0, 1.0 - sinThetaT * sinThetaT));
+
+    // Compute Fresnel reflectance using the Fresnel equations
+    float rParl = ((etaTransmitted * cosThetaI) - (etaIncident * cosThetaT)) /
+                  ((etaTransmitted * cosThetaI) + (etaIncident * cosThetaT));
+    float rPerp = ((etaIncident * cosThetaI) - (etaTransmitted * cosThetaT)) /
+                  ((etaIncident * cosThetaI) + (etaTransmitted * cosThetaT));
+    float reflectance = (rParl * rParl + rPerp * rPerp) * 0.5;
+
+    return reflectance;
+}
+
+// Disney BSDF Utilities
+vec3 CalculateTint(vec3 baseColor){
+    float luminance  = dot(vec3(0.3, 0.6, 1.0), baseColor);
+    return (luminance > 0.0) ? baseColor * (1.0 / luminance) : vec3(1.0);
+}
+
+vec3 DisneyFresnel(Material material, vec3 wo, vec3 wm, vec3 wi, float relativeIOR){
+    float dotHV = abs(dot(wm, wo));
+
+    vec3 tint = CalculateTint(material.base_color);
+
+    vec3 R0 = FresnelSchlickR0FromRelativeIOR(relativeIOR) * LerpVec3(vec3(1.0), tint, material.specular_tint);
+    R0 = LerpVec3(R0, material.base_color, material.metallic);
+
+    float dielectricFresnel = FresnelDielectric(dotHV, 1.0, relativeIOR);
+    vec3 metallicFresnel = FresnelSchlickVec3(R0, dot(wi, wm));
+
+    return LerpVec3(vec3(dielectricFresnel), metallicFresnel, material.metallic);
+}
+
+float GTR1(float absDotHL, float a){
+    if(a >= 1) {
+        return 1.0 / PI;
+    }
+
+    float a2 = a * a;
+    return (a2 - 1.0) / (PI * log2(a2) * (1.0 + (a2 - 1.0) * absDotHL * absDotHL));
+}
+
+float SeparableSmithGGXG1(vec3 w, float a){
+    float a2 = a * a;
+    float absDotNV = abs(CosTheta(w));
+
+    return 2.0 / (1.0 + sqrt(a2 + (1.0 - a2) * absDotNV * absDotNV));
+}
+
+float GgxAnisotropicD(vec3 wm, float ax, float ay){
+    float dotHX2 = wm.x * wm.x;
+    float dotHY2 = wm.z * wm.z;
+    float cos2Theta = CosTheta(wm) * CosTheta(wm);
+    float sin2Theta = 1.0 - cos2Theta;
+    float ax2 = ax * ax;
+    float ay2 = ay * ay;
+    float coef = sin2Theta * (dotHX2 / ax2 + dotHY2 / ay2) + cos2Theta;
+    return 1.0 / max(1e-3, PI * ax * ay * coef * coef);
+}
+
+float Lambda(vec3 w, float ax, float ay){
+    float cos2Theta = CosTheta(w) * CosTheta(w);
+    float tan2Theta = (1.0 - cos2Theta) / cos2Theta;
+    float cos2Phi = w.x * w.x;
+    float sin2Phi = 1.0 - cos2Phi;
+    float a2 = cos2Phi * ax * ax + sin2Phi * ay * ay;
+    float a2Tan2Theta = a2 * tan2Theta;
+    return 0.5 * (sqrt(1.0 + a2Tan2Theta) - 1.0);
+}
+
+float SeparableSmithGGXG1(vec3 w, vec3 wm, float ax, float ay){
+    //float dotHW = dot(w, wm);
+    //if (dotHW <= 0.0) return 0.0;
+    float cos2Theta = CosTheta(w) * CosTheta(w);
+    float tan2Theta = (1.0 - cos2Theta) / cos2Theta;
+    if(isinf(tan2Theta)) return 0.0;
+    float lambda = Lambda(w, ax, ay);
+    return 1.0 / (1.0 + lambda);
+}
+
+float SeparableSmithGGXG(vec3 wo, vec3 wi, float ax, float ay){
+    //float dotHW = dot(w, wm);
+    //if (dotHW <= 0.0) return 0.0;
+    float cos2Theta, tan2Theta;
+    cos2Theta = CosTheta(wo) * CosTheta(wo);
+    tan2Theta = (1.0 - cos2Theta) / cos2Theta;
+    if(isinf(tan2Theta)) return 0.0;
+    float lambdao = Lambda(wo, ax, ay);
+    cos2Theta = CosTheta(wi) * CosTheta(wi);
+    tan2Theta = (1.0 - cos2Theta) / cos2Theta;
+    if(isinf(tan2Theta)) return 0.0;
+    float lambdai = Lambda(wi, ax, ay);
+    return 1.0 / max(1e-3, 1.0 + lambdao + lambdai);
+}
+
+void GgxVndfAnisotropicPdf(vec3 w, vec3 wm, float ax, float ay, out float Pdf){
+    // Compute the GGX Anisotropic NDF D(wm)
+    float D = GgxAnisotropicD(wm, ax, ay);
+
+    // Compute the initial PDF value
+    float absDotNL = abs(CosTheta(w));
+    float positiveDotHL = max(0.0, dot(wm, w));
+    float g1 = SeparableSmithGGXG1(w, wm, ax, ay);
+    // Assign the same PDF for forward and reverse directions
+    Pdf = g1 * positiveDotHL * D / max(1e-3, absDotNL);
+}
+
+bool Transmit(vec3 wo, vec3 wm, vec3 wi, float relativeIOR) {
+    float cosThetaO = dot(wm, wo);
+    float sin2ThetaI = (relativeIOR * relativeIOR) * (1.0 - cosThetaO * cosThetaO);
+    if (sin2ThetaI > 1.0) return false;
+    else return true;
+}
+
+float ThinTransmissionRoughness(float ior, float roughness){
+    return max(0.0, max(1.0, (0.65 * ior - 0.35) * roughness));
+}
+
+vec3 EvaluateSheen(Material material, vec3 wo, vec3 wm, vec3 wi){
+    if (material.sheen <= 0.0){
+        return vec3(0.0);
+    }
+    float dotHL = dot(wm, wi);
+    vec3 tint = CalculateTint(material.base_color);
+    vec3 lerp = LerpVec3(vec3(1.0), tint, material.sheen_tint);
+    return material.sheen * lerp * pow(1.0 - dotHL, 5.0);
+}
+
+float EvaluateDisneyClearcoat(float clearcoat, float alpha, vec3 wo, vec3 wm, vec3 wi){
+    if(clearcoat <= 0.0) {
+        return 0.0;
+    }
+
+    float absDotNH = abs(CosTheta(wm));
+    float absDotNL = abs(CosTheta(wi));
+    float absDotNV = abs(CosTheta(wo));
+    float dotHL = dot(wm, wi);
+
+    float d = GTR1(absDotNH, LerpFloat(0.1, 0.001, alpha));
+    float f = FresnelSchlick(0.04, dotHL);
+    float gl = SeparableSmithGGXG1(wi, 0.25);
+    float gv = SeparableSmithGGXG1(wo, 0.25);
+
+    return 0.25 * clearcoat * d * f * gl * gv;
+}
+
+vec3 EvaluateDisneyBRDF(Material material, vec3 wo, vec3 wm, vec3 wi, float relativeIOR){
+
+    float dotNL = CosTheta(wi);
+    float dotNV = CosTheta(wo);
+    if(dotNL <= 0.0 || dotNV <= 0.0) {
+        return vec3(0.0);
+    }
+
+    float aspect = sqrt(1.0 - material.anisotropic * 0.9);
+    float rotation_angle = PI * material.anisotropic_rotation;
+    float ax = max(0.001, material.roughness * material.roughness / aspect * abs(cos(rotation_angle)));
+    float ay = max(0.001, material.roughness * material.roughness * aspect * abs(sin(rotation_angle)));
+
+    float d = GgxAnisotropicD(wm, ax, ay);
+    float g = SeparableSmithGGXG1(wo, wi, ax, ay);
+    vec3 f = DisneyFresnel(material, wo, wm, wi, relativeIOR);
+
+    return d * g * f / (4.0 * dotNL * dotNV);
+}
+
+vec3 EvaluateDisneySpecTransmission(Material material, vec3 wo, vec3 wm, vec3 wi, float ax, float ay, bool thin, float relativeIOR, bool trans){
+    float absDotNL = abs(CosTheta(wi));
+    float absDotNV = abs(CosTheta(wo));
+    float dotHL = dot(wm, wi);
+    float dotHV = dot(wm, wo);
+    float absDotHL = abs(dotHL);
+    float absDotHV = abs(dotHV);
+
+    float d = GgxAnisotropicD(wm, ax, ay);
+    float g = SeparableSmithGGXG(wo, wi, ax, ay);
+    float f = FresnelDielectric(dotHV, 1.0, relativeIOR);
+    vec3 color;
+
+    if (thin) color = sqrt(material.base_color);
+    else color = material.base_color;
+
+    if(trans) return color * material.transmission;
+    else return color * material.transmission;
+    //if(trans) {
+    //    float c = absDotHL * absDotHV / max(1e-3, absDotNL * absDotNV);
+    //    float sqdenom = dotHL + dotHV * relativeIOR;
+    //    float t = 1.0 / max(1e-3, sqdenom * sqdenom);
+    //    if (isnan(c)) c = 0.0;
+    //    if (isnan(d)) d = 0.0;
+    //    if (isnan(g)) g = 0.0;
+    //    if (isnan(t)) t = 0.0;
+    //    return sqrt(material.base_color) * c * t * max(1e-3, 1.0 - f) * g * d * material.transmission;// * abs(CosTheta(wm));
+    //}
+    //else 
+    //    return material.base_color * d * g * max(1e-3, f) / (4.0 * absDotNL * absDotNV) * material.transmission;
+}
+
+float EvaluateDisneyDiffuse(Material material, vec3 wo, vec3 wm, vec3 wi, bool thin){
+    float dotNL = abs(CosTheta(wi));
+    float dotNV = abs(CosTheta(wo));
+    float dotHL = abs(dot(wi, wm));
+
+    float fl = FresnelSchlickWeight(dotNL);
+    float fv = FresnelSchlickWeight(dotNV);
+
+    float hanrahanKrueger = 0.0;
+
+    // if (thin ...)
+    if(material.subsurface > 0.0) {
+        float fss90 = dotHL * dotHL * material.roughness;
+        float fss = LerpFloat(1.0, fss90, fl) * LerpFloat(1.0, fss90, fv);
+
+        float ss = 1.25 * (fss * (1.0 / (dotNL + dotNV) - 0.5) + 0.5);
+        hanrahanKrueger = ss;
+    }
+
+    float lambert = 1.0;
+    float rr = 0.5 + 2.0 * material.roughness * dotHL * dotHL;
+    float retro = (1.0 + fl * (rr - 1.0)) * (1.0 + fv * (rr - 1.0));
+    float subsurfaceApprox = LerpFloat(retro, hanrahanKrueger, material.subsurface);
+
+    return 1.0 / PI * subsurfaceApprox;
+    //return 1.0 / PI * (retro + subsurfaceApprox * (1.0 - 0.5 * fl) * (1.0 - 0.5 * fv));
+}
+
+void CalculateLobePdfs(Material material, out float pMetallic, out float pDiffuse, out float pSpecTrans, out float pClearcoat){
+    float metallicBRDF   = material.metallic;
+    float specularBSDF   = (1.0 - material.metallic) * material.specular * material.transmission;
+    float dielectricBRDF = (1.0 - material.specular * material.transmission) * (1.0 - material.metallic);
+
+    float specularWeight     = metallicBRDF + dielectricBRDF;
+    float transmissionWeight = specularBSDF;
+    float diffuseWeight      = dielectricBRDF;
+    float clearcoatWeight    = 1.0 * min(1.0, max(0.0, material.clearcoat)); 
+
+    float norm = 1.0 / (specularWeight + transmissionWeight + diffuseWeight + clearcoatWeight);
+
+    pMetallic  = specularWeight     * norm;
+    pSpecTrans = transmissionWeight * norm;
+    pDiffuse   = diffuseWeight      * norm;
+    pClearcoat = clearcoatWeight    * norm;
+}
+
 vec3 SampleHemisphere(vec3 normal) {
     // Randomly sample spherical coordinates
     float xi1 = RandomFloat();
@@ -114,8 +410,8 @@ vec3 SampleHemisphere(vec3 normal) {
 
     // Convert from spherical to Cartesian coordinates
     // theta is the angle from the normal
-    float theta = acos(sqrt(1.0 - xi1));  // theta ¡Ê [0, pi]
-    float phi = 2.0 * PI * xi2;            // phi ¡Ê [0, 2*pi]
+    float theta = acos(sqrt(1.0 - xi1));  // theta ï¿½ï¿½ [0, pi]
+    float phi = 2.0 * PI * xi2;            // phi ï¿½ï¿½ [0, 2*pi]
 
     // Spherical to Cartesian conversion
     float x = sin(theta) * cos(phi);
@@ -133,161 +429,496 @@ vec3 SampleHemisphere(vec3 normal) {
     return sampledDirection;
 }
 
-vec3 SampleBRDF(HitRecord hit_record, Material material, vec3 wo, out float pdf, out float cosine) {
-    vec3 wi=vec3(0.0);
-    if (material.type == MATERIAL_TYPE_LAMBERTIAN){
-        // Sample a random hemisphere direction wi
-        wi = SampleHemisphere(hit_record.shading_normal);
+vec3 SampleGgxVndfAnisotropic(vec3 wo, float ax, float ay, float u1, float u2){
+    // -- Stretch the view vector so we are sampling as though roughness==1
+    vec3 v = normalize(vec3(wo.x * ax, wo.y, wo.z * ay));
+    if (v.y < 0.0) v = -v;
 
-        // Compute the cosine of the angle between the normal and the incoming direction
-        cosine = max(1e-3, dot(hit_record.shading_normal, wi));
+    // -- Build an orthonormal basis with v, t1, and t2
+    vec3 t1 = (abs(v.y) < 0.9999) ? normalize(cross(v, vec3(0.0, 1.0, 0.0))) : vec3(1.0, 0.0, 0.0);
+    vec3 t2 = normalize(cross(t1, v));
 
-        // The probability density function for Lambertian BRDF is constant (1 / 2¦Ð)
-        pdf = 1.0 / PI / 2.0;
-    }
-    if (material.type == MATERIAL_TYPE_SPECULAR){
-        // Compute the perfect reflection direction
-        wi = reflect(wo, hit_record.shading_normal);
+    // -- Choose a point on a disk with each half of the disk weighted proportionally to its projection onto direction v
+    float a = 0.5 * (1.0 + v.y);
+    float r = sqrt(u1);
+    //float phi = (u2 < a) ? (u2 / a) * PI : PI + (u2 - a) / (1.0 - a) * PI;
+    float phi = 2.0 * PI * u2;
+    float p1 = r * cos(phi);
+    float p2 = r * sin(phi);
+    p2 = LerpFloat(sqrt(1.0 - p1 * p1), p2, a);
 
-        // Compute the cosine of the angle between the normal and the incoming direction
-        cosine = max(1e-3, dot(hit_record.shading_normal, wi));
+    // -- Calculate the normal in this stretched tangent space
+    vec3 n = p1 * t1 + p2 * t2 + sqrt(max(0.0, 1.0 - p1 * p1 - p2 * p2)) * v;
 
-        // The probability density function for Specular BRDF is constant 1
-        pdf = 1.0;
-    }
+    // -- unstretch and normalize the normal
+    return normalize(vec3(ax * n.x, max(n.y, 0.0), ay * n.z));
+}
+
+vec3 SampleDisneyBRDF(Material material, vec3 wo, out float forwardPdf){
+    // -- Calculate Anisotropic params
+    float aspect = sqrt(1.0 - material.anisotropic * 0.9);
+    float rotation_angle = PI * material.anisotropic_rotation;
+    float ax = max(0.001, material.roughness * material.roughness / aspect * abs(cos(rotation_angle)));
+    float ay = max(0.001, material.roughness * material.roughness * aspect * abs(sin(rotation_angle)));
+
+    // -- Sample visible distribution of normals
+    float r0 = RandomFloat();
+    float r1 = RandomFloat();
+    vec3 wm = SampleGgxVndfAnisotropic(wo, ax, ay, r0, r1);
+
+    // -- Reflect over wm
+    vec3 wi = normalize(reflect(-wo, wm));
+    if(wi.y <= 0.0) return vec3(0.0);
+    GgxVndfAnisotropicPdf(wo, wm, ax, ay, forwardPdf);
+    forwardPdf *= (1.0 / (4.0 * abs(dot(wo, wm))));
 
     return wi;
 }
 
-vec3 SampleRay(vec3 origin, vec3 direction) {
-    // Russian Roulette probability for path continuation
-    float P_RR = 0.9; // Probability for path continuation (can be tuned)
-    vec3 accumulated_color = vec3(0.0); // Accumulated color
-    vec3 accumulated_coef = vec3(1.0, 1.0, 1.0);
-    uint max_depth = scene_settings.num_bounces;
+vec3 SampleDisneySpecTransmission(Material material, vec3 wo, bool trans, out float forwardPdf, bool front, out vec3 wm){
     
-    for (int depth = 0; depth < max_depth; ++depth) {
-        // Russian Roulette termination condition
-        float ksi = RandomFloat();
-        if (ksi > P_RR) {
+    vec3 wi;
+    float rscaled = material.transmission_roughness;
+    float taspect = sqrt(1.0 - material.anisotropic * 0.9);
+    float rotation_angle = PI * material.anisotropic_rotation;
+    float tax = max(0.001, rscaled / taspect * abs(cos(rotation_angle)));
+    float tay = max(0.001, rscaled * taspect * abs(sin(rotation_angle)));
+    
+    float r0 = RandomFloat();
+    float r1 = RandomFloat();
+    wm = SampleGgxVndfAnisotropic(wo, tax, tay, r0, r1);
+    if (dot(wm, wo)< 0.0) wm = -wm;
+    float dotHV, dotHL, jacobian;
+    dotHV = dot(wo, wm);
+    float relativeIOR = front ? material.ior : 1.0 / material.ior;
+    float F = FresnelDielectric(dotHV, 1.0, relativeIOR);
+    GgxVndfAnisotropicPdf(wo, wm, tax, tay, forwardPdf);
+    if(Transmit(wo, wm, wi, relativeIOR) && RandomFloat() >= F) {
+        float wiCos = sqrt(1.0 - relativeIOR * relativeIOR * (1.0 - dotHV * dotHV));
+        wi = normalize(relativeIOR * -wo + (abs(dotHV) * relativeIOR - wiCos) * wm);
+        dotHL = dot(wi, wm);
+        float sqdenom = dotHL + dotHV * relativeIOR;
+        jacobian = abs(dotHV) / max(1e-3, sqdenom * sqdenom);
+        forwardPdf *= max(1e-3, 1.0 - F) * jacobian;
+        trans = true;
+    }
+    else {
+        wi = reflect(-wo, wm);
+        jacobian = 1.0 / max(1e-3, 4.0 * abs(dot(wo, wm)));
+        forwardPdf *= max(1e-3, F) * jacobian;
+        trans = false;
+    }
+    return wi;
+}
+
+vec3 SampleDisneyDiffuse(Material material, vec3 wo, bool thin, out float forwardPdf){
+    float sign_ = sign(CosTheta(wo));
+    vec3 wi = sign_ * SampleHemisphere(vec3(0.0,1.0,0.0));
+
+    float dotNL = CosTheta(wi);
+    float pdf;
+   
+    float p = RandomFloat();
+    if(p > material.alpha) {
+        wi = -wo;
+        pdf = (1.0 - material.alpha);
+    }
+    else pdf = material.alpha;
+    forwardPdf = pdf * max(1e-3, dotNL) * abs(CosTheta(wo)) / PI;
+    return normalize(wi);
+}
+
+vec3 SampleDisneyClearcoat(Material material, vec3 wo, out float forwardPdf){
+    float a = 0.25;
+    float a2 = a * a;
+
+    float r0 = RandomFloat();
+    float r1 = RandomFloat();
+    float cosTheta = sqrt(max(0.0, (1.0 - pow(a2, 1.0 - r0)) / (1.0 - a2)));
+    float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+    float phi = 2.0 * PI * r1;
+
+    vec3 wm = vec3(sinTheta * cos(phi), cosTheta, sinTheta * sin(phi));
+    if(dot(wm, wo) < 0.0) wm = -wm;
+
+    vec3 wi = reflect(-wo, wm);
+    if(dot(wi, wo) < 0.0) return vec3(0.0);
+
+    float clearcoatWeight = material.clearcoat;
+    float clearcoatGloss = 1.0 - material.clearcoat_roughness;
+
+    float dotNH = CosTheta(wm);
+    float dotLH = dot(wm, wi);
+    float absDotNL = abs(CosTheta(wi));
+    float absDotNV = abs(CosTheta(wo));
+
+    float d = GTR1(abs(dotNH), LerpFloat(0.1, 0.001, clearcoatGloss));
+
+    forwardPdf = d / (4.0 * dot(wo, wm));
+    return wi;
+}
+
+// For overllall Sampling and Evaluation
+uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, out vec3 wi, out float pdf, out bool trans) {
+    uint type=0;
+    wi = vec3(0.0);
+    wm = vec3(0.0);
+    trans = false;
+    switch (material.type){
+		case MATERIAL_TYPE_LAMBERTIAN:
+			wi = SampleHemisphere(material.normal);
+            pdf = max(1e-3, abs(dot(wo, material.normal))) * max(1e-3, abs(dot(wi, material.normal))) / PI;
+			break;
+		case MATERIAL_TYPE_SPECULAR:
+			wi = reflect(wo, hit_record.shading_normal);
+            pdf = 1.0;
+			break;
+		case MATERIAL_TYPE_PRINCIPLED:
+            bool thin = false;
+            float forwardPdf=0.0;
+            float relativeIOR = material.ior;
+            if (hit_record.front_face)relativeIOR = 1.0 / relativeIOR;
+            
+            wo = -wo;
+            mat3 TNB = mat3(hit_record.tangent, hit_record.shading_normal, hit_record.bitangent);
+            mat3 tTNB = transpose(TNB);
+            wo = normalize(tTNB * wo);
+            
+            float pMetallic, pDiffuse, pSpecTrans, pClearcoat;
+            CalculateLobePdfs(material, pMetallic, pDiffuse, pSpecTrans, pClearcoat);
+            float r = RandomFloat();
+            
+            if (r <= pMetallic){
+                while(length(wi) < 1e-3) wi = SampleDisneyBRDF(material, wo, forwardPdf);
+                type = 0;
+                pdf = forwardPdf * pMetallic;
+            }
+            else if (r <= pMetallic + pDiffuse){
+                while(length(wi) < 1e-3) wi = SampleDisneyDiffuse(material, wo, thin, forwardPdf);
+                type = 1;
+                pdf = forwardPdf * pDiffuse;
+            }
+            else if (r <= pMetallic + pDiffuse + pSpecTrans){
+                while(length(wi) < 1e-3) wi = SampleDisneySpecTransmission(material, wo, trans, forwardPdf, hit_record.front_face, wm);
+                type = 2;
+                pdf = forwardPdf * pSpecTrans;
+			}
+			else{
+                while(length(wi) < 1e-3) wi = SampleDisneyClearcoat(material, wo, forwardPdf);   
+                type = 3;
+                pdf = forwardPdf * pClearcoat;
+			}
+            wi = normalize(TNB * wi);
             break;
+        case MATERIAL_TYPE_VOLUMETRIC:
+            wi = wo;
+            pdf = 1.0;
+            break;
+        case MATERIAL_TYPE_POINTLIGHT:
+            wi = wo;
+            pdf = 1.0;
+            break;
+	}
+    return type;
+}
+
+vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3 wi, float P_RR, float pdf, uint type, bool trans) {
+    switch (material.type){
+		case MATERIAL_TYPE_LAMBERTIAN:
+            return material.base_color * max(1e-3, abs(dot(wo, material.normal))) * max(1e-3, abs(dot(wi, material.normal))) / PI / P_RR / pdf;
+			break;
+		case MATERIAL_TYPE_SPECULAR:
+			vec3 w_reflect = reflect(wo, hit_record.shading_normal);
+            if (dot(w_reflect, wi) > 1.0 - 1e-3) return material.base_color / P_RR / pdf;
+            else return vec3(0.0);
+			break;
+		case MATERIAL_TYPE_PRINCIPLED:
+            bool thin = false;
+            float relativeIOR;
+            if (!hit_record.front_face) relativeIOR = material.ior;
+            else relativeIOR = 1.0 / material.ior;
+            
+            wo = -wo;
+            mat3 TNB = mat3(hit_record.tangent, hit_record.shading_normal, hit_record.bitangent);
+            mat3 tTNB = transpose(TNB);
+            wo = normalize(tTNB * wo);
+            wi = normalize(tTNB * wi);
+            if (trans){ 
+                wm = normalize(wi + relativeIOR * wo);
+                if (dot(wm, wo)< 0.0) wm = -wm;
+            }
+            else wm = normalize(wi + wo);
+
+            switch (type){
+                case 0:
+                    float specularWeight = material.metallic + (1.0 - material.metallic) * material.specular * material.transmission;
+                    vec3 specular = EvaluateDisneyBRDF(material, wo, wm, wi, relativeIOR);
+                    return specularWeight * specular / P_RR / pdf;
+                    break;
+                case 1:
+                    float diffuseWeight = (1.0 - material.metallic) * (1.0 - material.specular * material.transmission);
+                    float diffuse = EvaluateDisneyDiffuse(material, wo, wm, wi, thin);
+                    vec3 sheen = EvaluateSheen(material, wo, wm, wi);
+                    return (diffuse * material.base_color * max(1e-3, abs(CosTheta(wo))) * max(1e-3, abs(dot(wi, material.normal))) + sheen) / P_RR / pdf;
+                    break;
+                case 2:
+                    float rscaled = material.transmission_roughness;
+                    if (thin) rscaled = ThinTransmissionRoughness(relativeIOR, rscaled);
+                    float taspect = sqrt(1.0 - material.anisotropic * 0.9);
+                    float rotation_angle = PI * material.anisotropic_rotation;
+                    float tax = max(0.001, rscaled / taspect * abs(cos(rotation_angle)));
+                    float tay = max(0.001, rscaled * taspect * abs(sin(rotation_angle)));
+                    float transWeight = (1.0 - material.metallic) * material.specular * material.transmission;
+                    vec3 transmission = EvaluateDisneySpecTransmission(material, wo, wm, wi, tax, tay, thin, relativeIOR, trans);
+                    return transmission / P_RR;
+                    //return transmission / P_RR / pdf;
+                    break;
+                case 3:
+                    float clearcoatWeight = 1.0 * min(1.0, max(0.0, material.clearcoat)); 
+                    float clearcoat = EvaluateDisneyClearcoat(material.clearcoat, 1.0 - material.clearcoat_roughness, wo, wm, wi);
+                    return clearcoatWeight * vec3(clearcoat) / P_RR / pdf;
+                    break;
+            }
+            break;
+        case MATERIAL_TYPE_VOLUMETRIC:
+            return vec3(1.0);
+            break;
+        case MATERIAL_TYPE_POINTLIGHT:
+            return vec3(1.0);
+            break;
+	}
+    return vec3(0.0);
+}
+
+vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, vec3 wo, vec3 wm, float P_RR, uint type, out float pdf, bool trans){
+    // Compute the direct lighting
+    vec3 color_direct = vec3(0.0);
+    vec3 color_direct_direction = vec3(0.0);
+    pdf = 0.0;
+    if (!hit_record.front_face){
+        return color_direct;
+    }
+    // Define metadata
+    float entity_last_cdf = 0.0;
+    uint sampled_entity_id = -1;
+    uint sampled_triangle_id = -1;
+    float sampled_probability = 1.0;
+
+    // According to the cdf, sample an entity
+    float random_number = RandomFloat();
+    for (uint entity_id = 0; entity_id < scene_settings.num_entity; entity_id++){
+        // Choose whether to sample this according to CDF
+        if (random_number > metadatas[entity_id].emission_cdf){
+            entity_last_cdf = metadatas[entity_id].emission_cdf;
+            continue;
         }
 
-        // Compute the direct lighting
-        vec3 color_direct = vec3(0.0);
-        if (scene_settings.enable_direct_lighting && depth != 0){
-            // Define metadata
-            float entity_last_cdf = 0.0;
-            uint sampled_entity_id = -1;
-            uint sampled_triangle_id = -1;
-            float sampled_probability = 1.0;
-            float random_number = 0.0; 
-
-            // According to the cdf, sample an entity
-            random_number = RandomFloat();
-            for (uint entity_id = 0; entity_id < scene_settings.num_entity; entity_id++){
-                // Choose whether to sample this according to CDF
-                if (random_number > metadatas[entity_id].emission_cdf){
-                    entity_last_cdf = metadatas[entity_id].emission_cdf;
-                    continue;
-                }
-
-                // Compute the pdf
-                float pdf_this = metadatas[entity_id].emission_cdf - entity_last_cdf;
-                entity_last_cdf = metadatas[entity_id].emission_cdf;
-                if (pdf_this < 1e-6){
-			        continue;
-		        }
+        // Compute the pdf
+        float pdf_this = metadatas[entity_id].emission_cdf - entity_last_cdf;
+        entity_last_cdf = metadatas[entity_id].emission_cdf;
+        if (pdf_this < 1e-6) continue;
                 
-                // Store the entity id and the probability
-			    sampled_entity_id = entity_id;
-                sampled_probability *= pdf_this; // Use in  rendering function
-                break;
-	        }
+        // Store the entity id and the probability
+		sampled_entity_id = entity_id;
+        sampled_probability *= pdf_this; // Use in  rendering function
+        break;
+	}
         
-            // If we have sampled an entity, sample a triangle
-            random_number = RandomFloat();
-            if (sampled_entity_id != -1){
-                // Get metadata
-                uint mesh_id = metadatas[sampled_entity_id].mesh_id;
-                uint num_triangles = mesh_metadatas[mesh_id].num_index / 3;
-                float triangle_last_cdf = 0.0;
+    // If we have sampled an entity, sample a triangle
+    random_number = RandomFloat();
+    if (sampled_entity_id != -1){
+        // Deal with point light
+        Material light_material = materials[sampled_entity_id];
+        if (light_material.type == MATERIAL_TYPE_POINTLIGHT){
+            vec3 sampled_point = light_material.center;
+            vec3 light_direction = origin - sampled_point;
+            float light_distance = length(light_direction);
+            light_direction = normalize(light_direction);
+            color_direct_direction = normalize(sampled_point - origin);
+            TraceRay(sampled_point, light_direction);
+            if (ray_payload.t > light_distance - 1e-3){
+                // Origin
+                Material origin_material = material;
+                vec3 origin_normal = origin_material.normal;
+                // Light
+                vec3 emission = light_material.emission;
+                float emission_strength = light_material.emission_strength;
 
-                // According to the cdf, sample a triangle
-                for (uint primitive_id = 0; primitive_id < num_triangles; primitive_id++){
-                    // Choose whether to sample this according to CDF
-                    if (random_number > mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id]){
-                        entity_last_cdf = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id];
-                        continue;
-                    }
+			    // Compute the direct lighting and right normals
+                float origin_cos = max(1e-3, abs(dot(origin_normal, light_direction)));
+                vec3 light_intrinsic = emission * emission_strength;
+			    float light_attenuation = origin_cos / (light_distance * light_distance);
+                pdf = sampled_probability / light_attenuation;
+			    color_direct = light_intrinsic * 5000;
+		    }
+            // Return the direct lighting
+            if (length(color_direct) > 1e-6) // Sampled direct light is not none
+                return color_direct * EvaluateAll(hit_record, material, wo, wm, color_direct_direction, P_RR, pdf, type, trans);
+            return vec3(0.0);
+        }
 
-                    // Compute the pdf
-                    float pdf_this = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id] - triangle_last_cdf;
-                    triangle_last_cdf = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id];
-                    if (pdf_this < 1e-6){
-			            continue;
-		            }
+        // Get metadata
+        uint mesh_id = metadatas[sampled_entity_id].mesh_id;
+        uint num_triangles = mesh_metadatas[mesh_id].num_index / 3;
+        float triangle_last_cdf = 0.0;
 
-                    // Store the entity id and the probability
-			        sampled_triangle_id = primitive_id;
-                    sampled_probability *= pdf_this; // Use in  rendering function
-                    break;
-		        }
+        // According to the cdf, sample a triangle
+        for (uint primitive_id = 0; primitive_id < num_triangles; primitive_id++){
+            // Choose whether to sample this according to CDF
+            if (random_number > mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id]){
+                entity_last_cdf = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id];
+                continue;
             }
 
-            // If we have sampled a triangle, sample a point, compute the direct lighting
-            if (sampled_triangle_id != -1){
-                // Get the vertices
-                uint mesh_id = metadatas[sampled_entity_id].mesh_id;
-                Vertex v0 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 0]);
-                Vertex v1 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 1]);
-                Vertex v2 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 2]);
+            // Compute the pdf
+            float pdf_this = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id] - triangle_last_cdf;
+            triangle_last_cdf = mesh_cdf_buffers[mesh_id].area_cdfs[primitive_id];
+            if (pdf_this < 1e-6) continue;
 
-                // Uniformly sample points in triangle
-                float coef0 = sqrt(RandomFloat());
-                float coef1 = RandomFloat() * (1 - coef0);
-                float coef2 = 1 - coef0 - coef1;
-                vec3 sampled_point = v0.position * coef0 + v1.position * coef1 + v2.position * coef2;
+            // Store the entity id and the probability
+			sampled_triangle_id = primitive_id;
+            sampled_probability *= pdf_this; // Use in  rendering function
+            break;
+		}
+    }
 
-                // Test whether the light is blocked
-                vec3 light_direction = origin - sampled_point;
-                float light_distance = length(light_direction);
-                light_direction = normalize(light_direction);
-                TraceRay(sampled_point, light_direction);
+    // If we have sampled a triangle, sample a point, compute the direct lighting
+    if (sampled_triangle_id != -1){
+        // Get the vertices
+        uint mesh_id = metadatas[sampled_entity_id].mesh_id;
+        Vertex v0 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 0]);
+        Vertex v1 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 1]);
+        Vertex v2 = GetVertex(mesh_id, index_buffers[mesh_id].indices[sampled_triangle_id * 3 + 2]);
+
+        // Uniformly sample points in triangle
+        float coef0 = sqrt(RandomFloat());
+        float coef1 = RandomFloat() * (1 - coef0);
+        float coef2 = 1 - coef0 - coef1;
+        vec3 sampled_point = v0.position * coef0 + v1.position * coef1 + v2.position * coef2;
+
+        // Test whether the light is blocked
+        vec3 light_direction = origin - sampled_point;
+        float light_distance = length(light_direction);
+        light_direction = normalize(light_direction);
+        color_direct_direction = normalize(sampled_point - origin);
+        TraceRay(sampled_point, light_direction);
+
+        if (ray_payload.t > light_distance - 1e-3){
             
-                if (ray_payload.t > light_distance - 1e-3){
-                    // Origin
-                    HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
-                    Material origin_material = GetMaterial(hit_record);
-                    vec3 origin_normal = origin_material.normal;
-                    // Light
-                    Material light_material = materials[sampled_entity_id];
-                    vec3 emission = light_material.emission;
-                    float emission_strength = light_material.emission_strength;
+            // Origin
+            Material origin_material = material;
+            vec3 origin_normal = origin_material.normal;
+            // Light
+            Material light_material = materials[sampled_entity_id];
+            vec3 emission = light_material.emission;
+            float emission_strength = light_material.emission_strength;
 
-			        // Compute the direct lighting and right normals
-			        vec3 light_normal = normalize(cross(v1.position - v0.position, v2.position - v0.position));
-			        if (dot(light_normal, light_direction) < 0){
-				        light_normal = -light_normal;
-			        }
-                    if (dot(light_normal, light_direction) < 0){
-                        origin_normal = -origin_normal;
-                    }
+			// Compute the direct lighting and right normals
+			vec3 light_normal = normalize(cross(v1.position - v0.position, v2.position - v0.position));
+			float light_area = length(cross(v1.position - v0.position, v2.position - v0.position)) / 2.0;
+			        
+			float light_cos = max(1e-3, abs(dot(light_normal, light_direction)));
+            float origin_cos = max(1e-3, abs(dot(origin_normal, light_direction)));
+            vec3 light_intrinsic = emission * emission_strength;
+			float light_attenuation = light_cos * origin_cos / (light_distance * light_distance);
+            pdf = sampled_probability / light_area / light_attenuation;
+			color_direct = light_intrinsic;
+		}
+    }
 
-                    // Get the direct lighting
-			        float light_area = length(cross(v1.position - v0.position, v2.position - v0.position)) / 2.0;
-			        float light_pdf = sampled_probability / light_area;
-			        float light_cos = max(1e-3, dot(light_normal, light_direction));
-                    float origin_cos = max(1e-3, dot(origin_normal, light_direction));
-                    vec3 light_intrinsic = emission * emission_strength;
-			        float light_attenuation = light_cos * origin_cos / (light_distance * light_distance);
-			        color_direct = light_intrinsic * light_attenuation / light_pdf;
-		        }
-            }
+    // Return the direct lighting
+    if (length(color_direct) > 1e-6) // Sampled direct light is not none
+        return color_direct * EvaluateAll(hit_record, material, wo, wm, color_direct_direction, P_RR, pdf, type, trans);
+    return vec3(0.0);
+
+}
+
+// sample according to exponential distribution
+float SampleExponential(float sigma) {
+    float u = RandomFloat();
+    return -log(u) / sigma;
+}
+
+// sample according to Henyey-Greenstein distribution
+// input the direction before scattering, output the sampled direction after scattering
+vec3 SampleHG(float g, vec3 dir) {
+    // sample local spherical coordinate
+    float u_1 = RandomFloat();
+    float u_2 = RandomFloat();
+    float cos_theta;
+    if (abs(g) < 1e-3)
+        cos_theta = 1 - 2 * u_1;
+    else {
+        float temp = (1 - g * g) / (1 + g - 2 * g * u_1);
+        cos_theta = 1 * (1 + g * g - temp * temp) / (2 * g) ;
+    }
+    float sin_theta = sqrt(1 - cos_theta * cos_theta);
+    float phi = 2 * PI * u_2;
+
+    // normalize dir to form z'
+    vec3 zAxis = dir;
+
+    // compute x' (arbitrary perpendicular vector to z')
+    vec3 xAxis = normalize(vec3(-zAxis.z, 0.0, zAxis.x));
+    
+    // compute y' as cross product
+    vec3 yAxis = cross(zAxis, xAxis);
+
+    // convert spherical to cartesian
+    vec3 localCartesian = vec3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
+
+    // transform to original coordinate system
+    return localCartesian.x * xAxis + localCartesian.y * yAxis + localCartesian.z * zAxis;
+}
+
+// sample a point uniformly in a circle with radius
+vec2 SampleCircle(float radius) {
+    float u = RandomFloat();
+    float v = RandomFloat();
+    float r = radius * sqrt(u);
+    float theta = 2 * PI * v;
+    return vec2(r * cos(theta), r * sin(theta));
+}
+
+vec3 SampleRay(vec3 origin, vec3 direction) {
+    // Overall Coefficient
+    float P_RR = 0.9;
+    vec3 accumulated_color = vec3(0.0); 
+    vec3 accumulated_coef = vec3(1.0);
+    uint max_depth = scene_settings.num_bounces;
+
+    bool outside = true; // whether the ray is currently outside any object
+    bool volumetric = scene_settings.enable_volumetric_rendering;
+
+    // Coefficient for compute shading
+    float color_direct_pdf;
+    vec3 color_direct;
+    float color_indirect_pdf; 
+    vec3 color_indirect;
+
+    // Record for variable needed in the next iteration
+    HitRecord last_hit_record;
+    Material last_material;
+    vec3 last_direction;
+    uint last_type;
+    bool last_trans=false;
+    vec3 last_wm;
+
+    int depth = 0;
+    while (true) {
+        // This is the actual end of the loop
+        if (depth > max_depth)
+            break;
+
+        // Direct lighting
+        if (depth!=0 && scene_settings.enable_direct_lighting && last_type != 2)
+            color_direct = EvaluateDirectLight(last_hit_record, origin, last_material, last_direction, last_wm, P_RR, last_type, color_direct_pdf, last_trans);
+        else { // No direct light is computed
+            color_direct = vec3(0.0);
+            color_direct_pdf = 0.0;
         }
 
         // Path tracing
-        // Trace the ray to find where it hits
         TraceRay(origin, direction);
         // If the ray hits nothing (background), sample from the environment map
         if (ray_payload.t == -1.0) {
@@ -299,31 +930,140 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
 
-        if (material.emission_strength > 0.0) {
-			accumulated_color += material.emission * material.emission_strength * accumulated_coef;
-		    break;
-		}
+        // enable volumetric, and the ray will enter a volumetric object
+        if (volumetric && outside && material.type == MATERIAL_TYPE_VOLUMETRIC) {
+            outside = false;
+            origin = hit_record.position; // directly enter the object
+            accumulated_color += accumulated_coef * color_direct;
+            continue;
+        }
+        // not enable volumetric, or the ray interacts with non-volumetric object
+        if (outside) {
+            // Multiple importance sampling on light, compute shading
+            if (material.type != MATERIAL_TYPE_POINTLIGHT){
+                if (material.emission_strength > 1e-4){ // When indirect light hit the light source
+                    vec3 color_light = material.emission * material.emission_strength;
+                    if (scene_settings.enable_direct_lighting && color_direct_pdf > 1e-6){ // Multiple importance sampling
+                        accumulated_color += accumulated_coef * (color_direct_pdf * color_direct) / (color_direct_pdf + color_indirect_pdf);
+                        accumulated_color += accumulated_coef * (color_indirect_pdf * color_light) / (color_direct_pdf + color_indirect_pdf);
+                    }
+                    else accumulated_color += accumulated_coef * color_light;// No direct light case
+                }
+                else accumulated_color += accumulated_coef * color_direct;// Otherwise, only direct light
+            }
+           
+            // Russian Roulette termination condition
+            float ksi = RandomFloat();
+            if (ksi > P_RR) break;
 
-        // Sample a new direction wi using the BRDF (Lambertian or any other model)
-        vec3 wi; // New ray direction (outgoing)
-        float pdf; // Probability density function for the new direction
-        float cosine; // Cosine of the angle between the normal and the incoming direction
+            // Multiple importance sampling on the material's BRDF
+            vec3 wi, wm;
+            bool trans=false;
+            uint type = SampleAll(hit_record, material, direction, wm, wi, color_indirect_pdf, trans);
+            // return wi;
+            // Compute the color for the next bounce
+            vec3 color_indirect = EvaluateAll(hit_record, material, direction, wm, wi, P_RR, color_indirect_pdf, type, trans);
+            // return color_indirect;
+            // Update the ray origin and direction for the next bounce
+            last_direction = direction;
+            last_material = material;
+            last_hit_record = hit_record;
+            last_type = type;
+            last_wm = wm;
+            last_trans = trans;
 
-        // Sample the material's BRDF
-        wi = SampleBRDF(hit_record,material, direction, pdf, cosine);
-        float this_coef = cosine / pdf / P_RR;
-        vec3 fr = material.base_color / PI;
+            // Next ray
+            origin = hit_record.position;
+            direction = wi;
+            accumulated_coef *= color_indirect;
 
-        // Update the ray origin and direction for the next bounce
-        origin = hit_record.position;
-        direction = wi;
+            depth++;
+        }
+        // the ray is in a volumetric object, use volumetric rendering 
+        // no direct lighting, no Russian Roulette
+        else {
+            bool terminated = false;
+            bool scattered = false;
+            // while loop for sampling t in the volumetric object
+            while (true) {
+                // the majorant for homogeneous media
+                float sigma_maj = material.sigma_a + material.sigma_s;
 
-        // Accumulate radiance from the current bounce
-        accumulated_color += accumulated_coef * color_direct;
-        accumulated_coef *= fr * this_coef;
+                // do not set absorption or scattering, directly exit the object
+                if (sigma_maj < 1e-4)
+                    break;
+
+                // sample t using exponential distribution
+                float t_sp = SampleExponential(sigma_maj);
+                // exit the object
+                if (t_sp > ray_payload.t)
+                    break;
+
+                // probability for 3 kinds of events
+                float p_absorb = material.sigma_a / sigma_maj;
+                float p_scatter = material.sigma_s / sigma_maj;
+                float p_null = max(1 - p_absorb - p_scatter, 0.0f);
+                float u = RandomFloat();
+                
+                // emission event, exit the outer loop
+                if (u < p_absorb) {
+                    accumulated_color += accumulated_coef * material.l_e * material.l_e_strength;
+                    terminated = true;
+                    break;
+                }
+                // scattering event, sample a direction, continue the outer loop
+                else if (u < p_absorb + p_scatter) {
+                    origin = origin + direction * t_sp;
+                    direction = SampleHG(material.g, direction);
+                    scattered = true;
+                    break;
+                }
+                // null event, continue sampling t
+                else {
+                    continue;
+                }
+            }
+            if (terminated)
+                break;
+            if (scattered) {
+                depth++;
+                continue;
+            }
+            // exit the object
+            outside = true;
+            origin = hit_record.position;
+
+            // Update the ray origin and direction for the next bounce
+            last_direction = direction;
+            last_material = material;
+            last_hit_record = hit_record;
+            last_type = 0;
+            last_wm = vec3(0.0);
+            last_trans = false;
+        }
     }
     
     return accumulated_color;
+}
+
+// given origin and direction
+// check whether it is environment, and get the hitpoint
+// output the velocity of the object
+vec3 GetVelocity(vec3 origin, vec3 direction, out bool env, out vec3 hitpoint) {
+    ray_payload.t = -1.0;
+    TraceRay(origin, direction);
+
+    // hit environment
+    if (ray_payload.t == -1.0) {
+        env = true;
+        return vec3(0.0);
+    }
+    // hit object
+    else {
+        env = false;
+        hitpoint = origin + direction * ray_payload.t;
+        return materials[ray_payload.entity_id].velocity;
+    }
 }
 
 void main() {
@@ -338,15 +1078,50 @@ void main() {
     proj[0][0] = 1.0 / proj[0][0];
     proj[1][1] = 1.0 / proj[1][1];
 
-    vec4 origin = scene_settings.inv_view[3];  // * vec4(0, 0, 0, 1);
+    // the origin in camera coordination
+    vec3 cam_origin = vec3(0.0);
+
+    // the direction in camera coordination
     vec4 target = vec4(d.x, -d.y, 0, 1) * proj;
-    vec4 direction = scene_settings.inv_view * vec4(normalize(target.xyz), 0);
+    vec3 cam_direction = normalize(target.xyz);
+
+    // consider depth of field
+    if (scene_settings.aperture > 1e-3) {
+        // sample a point on the lens, update origin
+        vec2 offset = SampleCircle(scene_settings.aperture);
+        cam_origin += vec3(offset, 0.0);
+
+        // compute the intersection on the focus plane
+        float t = abs(scene_settings.focal_distance / cam_direction.z);
+        vec3 focus = t * cam_direction;
+
+        // update direction
+        cam_direction = normalize(focus - cam_origin);
+    }
+
+    // transform to world coordination
+    vec3 origin = (scene_settings.inv_view * vec4(cam_origin, 1.0)).xyz;
+    vec3 direction = (scene_settings.inv_view * vec4(cam_direction, 0.0)).xyz;
+
+    // get the hitpoint, velocity, and whether it's environment
+    vec3 hitpoint = vec3(0.0);
+    bool env;
+    vec3 v = GetVelocity(origin, direction, env, hitpoint);
+    vec3 v_r = v - scene_settings.camera_velocity;
+
+    // not environment light, have relative velocity, decay not too small
+    // consider motion blur
+    if (!env && dot(v_r, v_r) > 1e-3 && scene_settings.blur_decay > 1e-3) {
+        float s = SampleExponential(scene_settings.blur_decay); // exponential decay weight
+        vec3 sample_hitpoint = hitpoint + s * (-v_r); // tricky minus
+        direction = normalize(sample_hitpoint - origin);
+    }
 
     float tmin = 0.001;
     float tmax = 10000.0;
 
     ray_payload.t = -1.0;
-    vec3 sampled_result = SampleRay(origin.xyz, direction.xyz);
+    vec3 sampled_result = SampleRay(origin, direction);
 
     sampled_result = clamp(sampled_result, -scene_settings.clamp_value,
                            scene_settings.clamp_value);
