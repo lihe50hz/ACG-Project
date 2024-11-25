@@ -833,12 +833,16 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 
 }
 
+// sample according to exponential distribution
 float SampleExponential(float sigma) {
     float u = RandomFloat();
     return -log(u) / sigma;
 }
 
+// sample according to Henyey-Greenstein distribution
+// input the direction before scattering, output the sampled direction after scattering
 vec3 SampleHG(float g, vec3 dir) {
+    // sample local spherical coordinate
     float u_1 = RandomFloat();
     float u_2 = RandomFloat();
     float cos_theta;
@@ -851,20 +855,29 @@ vec3 SampleHG(float g, vec3 dir) {
     float sin_theta = sqrt(1 - cos_theta * cos_theta);
     float phi = 2 * PI * u_2;
 
-    // Normalize dir to form z'
+    // normalize dir to form z'
     vec3 zAxis = dir;
 
-    // Compute x' (arbitrary perpendicular vector to z')
+    // compute x' (arbitrary perpendicular vector to z')
     vec3 xAxis = normalize(vec3(-zAxis.z, 0.0, zAxis.x));
     
-    // Compute y' as cross product
+    // compute y' as cross product
     vec3 yAxis = cross(zAxis, xAxis);
 
-    // Convert spherical to cartesian
+    // convert spherical to cartesian
     vec3 localCartesian = vec3(sin_theta * cos(phi), sin_theta * sin(phi), cos_theta);
 
-    // Transform to original coordinate system
+    // transform to original coordinate system
     return localCartesian.x * xAxis + localCartesian.y * yAxis + localCartesian.z * zAxis;
+}
+
+// sample a point uniformly in a circle with radius
+vec2 SampleCircle(float radius) {
+    float u = RandomFloat();
+    float v = RandomFloat();
+    float r = radius * sqrt(u);
+    float theta = 2 * PI * v;
+    return vec2(r * cos(theta), r * sin(theta));
 }
 
 vec3 SampleRay(vec3 origin, vec3 direction) {
@@ -874,7 +887,7 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
     vec3 accumulated_coef = vec3(1.0);
     uint max_depth = scene_settings.num_bounces;
 
-    bool outside = true;
+    bool outside = true; // whether the ray is currently outside any object
     bool volumetric = scene_settings.enable_volumetric_rendering;
 
     // Coefficient for compute shading
@@ -916,13 +929,15 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         // Get the hit record (intersection details, normal, material, etc.)
         HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
-        
+
+        // enable volumetric, and the ray will enter a volumetric object
         if (volumetric && outside && material.type == MATERIAL_TYPE_VOLUMETRIC) {
             outside = false;
-            origin = hit_record.position;
+            origin = hit_record.position; // directly enter the object
             accumulated_color += accumulated_coef * color_direct;
             continue;
         }
+        // not enable volumetric, or the ray interacts with non-volumetric object
         if (outside) {
             // Multiple importance sampling on light, compute shading
             if (material.type != MATERIAL_TYPE_POINTLIGHT){
@@ -964,35 +979,46 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
 
             depth++;
         }
+        // the ray is in a volumetric object, use volumetric rendering 
+        // no direct lighting, no Russian Roulette
         else {
             bool terminated = false;
             bool scattered = false;
+            // while loop for sampling t in the volumetric object
             while (true) {
+                // the majorant for homogeneous media
                 float sigma_maj = material.sigma_a + material.sigma_s;
 
+                // do not set absorption or scattering, directly exit the object
                 if (sigma_maj < 1e-4)
                     break;
 
+                // sample t using exponential distribution
                 float t_sp = SampleExponential(sigma_maj);
+                // exit the object
                 if (t_sp > ray_payload.t)
                     break;
 
+                // probability for 3 kinds of events
                 float p_absorb = material.sigma_a / sigma_maj;
                 float p_scatter = material.sigma_s / sigma_maj;
                 float p_null = max(1 - p_absorb - p_scatter, 0.0f);
                 float u = RandomFloat();
                 
+                // emission event, exit the outer loop
                 if (u < p_absorb) {
                     accumulated_color += accumulated_coef * material.l_e * material.l_e_strength;
                     terminated = true;
                     break;
                 }
+                // scattering event, sample a direction, continue the outer loop
                 else if (u < p_absorb + p_scatter) {
                     origin = origin + direction * t_sp;
                     direction = SampleHG(material.g, direction);
                     scattered = true;
                     break;
                 }
+                // null event, continue sampling t
                 else {
                     continue;
                 }
@@ -1003,9 +1029,11 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
                 depth++;
                 continue;
             }
+            // exit the object
             outside = true;
             origin = hit_record.position;
 
+            // Update the ray origin and direction for the next bounce
             last_direction = direction;
             last_material = material;
             last_hit_record = hit_record;
@@ -1016,6 +1044,26 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
     }
     
     return accumulated_color;
+}
+
+// given origin and direction
+// check whether it is environment, and get the hitpoint
+// output the velocity of the object
+vec3 GetVelocity(vec3 origin, vec3 direction, out bool env, out vec3 hitpoint) {
+    ray_payload.t = -1.0;
+    TraceRay(origin, direction);
+
+    // hit environment
+    if (ray_payload.t == -1.0) {
+        env = true;
+        return vec3(0.0);
+    }
+    // hit object
+    else {
+        env = false;
+        hitpoint = origin + direction * ray_payload.t;
+        return materials[ray_payload.entity_id].velocity;
+    }
 }
 
 void main() {
@@ -1030,15 +1078,50 @@ void main() {
     proj[0][0] = 1.0 / proj[0][0];
     proj[1][1] = 1.0 / proj[1][1];
 
-    vec4 origin = scene_settings.inv_view[3];  // * vec4(0, 0, 0, 1);
+    // the origin in camera coordination
+    vec3 cam_origin = vec3(0.0);
+
+    // the direction in camera coordination
     vec4 target = vec4(d.x, -d.y, 0, 1) * proj;
-    vec4 direction = scene_settings.inv_view * vec4(normalize(target.xyz), 0);
+    vec3 cam_direction = normalize(target.xyz);
+
+    // consider depth of field
+    if (scene_settings.aperture > 1e-3) {
+        // sample a point on the lens, update origin
+        vec2 offset = SampleCircle(scene_settings.aperture);
+        cam_origin += vec3(offset, 0.0);
+
+        // compute the intersection on the focus plane
+        float t = abs(scene_settings.focal_distance / cam_direction.z);
+        vec3 focus = t * cam_direction;
+
+        // update direction
+        cam_direction = normalize(focus - cam_origin);
+    }
+
+    // transform to world coordination
+    vec3 origin = (scene_settings.inv_view * vec4(cam_origin, 1.0)).xyz;
+    vec3 direction = (scene_settings.inv_view * vec4(cam_direction, 0.0)).xyz;
+
+    // get the hitpoint, velocity, and whether it's environment
+    vec3 hitpoint = vec3(0.0);
+    bool env;
+    vec3 v = GetVelocity(origin, direction, env, hitpoint);
+    vec3 v_r = v - scene_settings.camera_velocity;
+
+    // not environment light, have relative velocity, decay not too small
+    // consider motion blur
+    if (!env && dot(v_r, v_r) > 1e-3 && scene_settings.blur_decay > 1e-3) {
+        float s = SampleExponential(scene_settings.blur_decay); // exponential decay weight
+        vec3 sample_hitpoint = hitpoint + s * (-v_r); // tricky minus
+        direction = normalize(sample_hitpoint - origin);
+    }
 
     float tmin = 0.001;
     float tmax = 10000.0;
 
     ray_payload.t = -1.0;
-    vec3 sampled_result = SampleRay(origin.xyz, direction.xyz);
+    vec3 sampled_result = SampleRay(origin, direction);
 
     sampled_result = clamp(sampled_result, -scene_settings.clamp_value,
                            scene_settings.clamp_value);

@@ -42,15 +42,21 @@ struct Material {
   glm::vec3 normal{0.5f, 0.5f, 1.0f};
   uint32_t type{0};
 
+  // for volumetric rendering
   glm::vec3 l_e{0.0f};  // volumetric emission base color
   float l_e_strength{0.0f};  // volumetric emission strength
   float sigma_a{0.0f};  // absorption coefficient
   float sigma_s{0.0f};  // scattering coefficient
   float g{0.0f};        // asymmetry parameter for Henyey-Greenstein phase function
+
+  float padding_0;
+
+  // for motion blur
+  glm::vec3 velocity{0.0f}; // the velocity of the object for motion blur
+  float padding_1;
   
-  float paddings_0;
   glm::vec3 center{0.0f};
-  float paddings_1;
+  float paddings_2;
   // This structure needs to be padded to 16 bytes
 };
 // clang-format on

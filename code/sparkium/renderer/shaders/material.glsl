@@ -43,10 +43,9 @@ struct Material {
   float sigma_a;
   float sigma_s;
   float g;
-
-  float paddings_0;
+  
+  vec3 velocity;
   vec3 center;
-  float paddings_1;
 };
 
 #endif
