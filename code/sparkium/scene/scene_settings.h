@@ -12,12 +12,12 @@ struct SceneSettings {
   float exposure{1.0f};
   float persistence{1.0f};
   uint32_t accumulated_sample{0};
-  uint32_t num_sample{16};
-  uint32_t num_bounces{32};
-  float clamp_value{10.0f};
+  uint32_t num_sample{1};
+  uint32_t num_bounces{16};
+  float clamp_value{20.0f};
   float total_emission_energy{0.0f};
   uint32_t num_entity{0};
-  uint32_t enable_direct_lighting{0};
+  uint32_t enable_direct_lighting{1};
   uint32_t enable_volumetric_rendering{0};
 
   // for depth of field

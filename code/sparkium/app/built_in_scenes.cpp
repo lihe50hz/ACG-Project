@@ -39,8 +39,8 @@ void LoadCornellBox(Scene *scene) {
       asset_manager->LoadMesh(Mesh(vertices, indices), "LightMesh");
   Material light_material;
   light_material.base_color = {0.0f, 0.0f, 0.0f};
-  light_material.emission = {1.0f, 1.0f, 1.0f};
-  light_material.emission_strength = 100.0f;
+  /*light_material.emission = {1.0f, 1.0f, 1.0f};
+  light_material.emission_strength = 100.0f;*/
   int light_id = scene->CreateEntity();
   scene->SetEntityMesh(light_id, light_mesh_id);
   scene->SetEntityMaterial(light_id, light_material);
@@ -171,6 +171,9 @@ void LoadCornellBox(Scene *scene) {
   // <index value = "13" /><index value = "14" /><index value = "15" />
   // <index value = "16" /><index value = "17" /><index value = "19" />
   // <index value = "17" /><index value = "18" /> <index value = "19" />
+
+
+
   indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
              9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21, 23, 21, 22, 23};
   vertices.clear();
@@ -205,6 +208,8 @@ void LoadCornellBox(Scene *scene) {
   int short_box_id = scene->CreateEntity();
   scene->SetEntityMesh(short_box_id, short_box_mesh_id);
   scene->SetEntityMaterial(short_box_id, short_box_material);
+
+
 
   // tall_box
   // <vertex position="423.0 330.0 247.0" tex_coord="0 0"/>
@@ -263,6 +268,9 @@ void LoadCornellBox(Scene *scene) {
   // <index value="17"/>
   // <index value="18"/>
   // <index value="19"/>
+
+
+
   indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
              9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21, 23, 21, 22, 23};
   vertices.clear();
@@ -299,7 +307,47 @@ void LoadCornellBox(Scene *scene) {
   scene->SetEntityMesh(tall_box_id, tall_box_mesh_id);
   scene->SetEntityMaterial(tall_box_id, tall_box_material);
 
+
+
+  Mesh test;
+  test.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  test.ThisIsPointLight();
+  int test_mesh_id = asset_manager->LoadMesh(test, "Cube");
+  Material test_material;
+  test_material.base_color = {0.0f, 0.0f, 0.8f};
+  test_material.emission = {1.0f, 1.0f, 1.0f};
+  test_material.emission_strength = 100.0f;
+  test_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
+  test_material.center = {343.0f, 530.0f, 227.0f};
+  
+  int test_id = scene->CreateEntity();
+  scene->SetEntityMesh(test_id, test_mesh_id);
+  scene->SetEntityMaterial(test_id, test_material);
+  Texture milkdragon_texture;
+  milkdragon_texture.LoadFromFile(
+      FindAssetsFile("texture/milkdragon.png"),
+      LDRColorSpace::UNORM);
+  auto milkdragon_texture_id =
+      asset_manager->LoadTexture(milkdragon_texture, "MilkdragonTexture");
+  scene->SetEntityAlbedoTexture(back_wall_id, milkdragon_texture_id);
+  //scene->SetEntityAlbedoDetailTexture(back_wall_id, milkdragon_texture_id);
+
+  Texture normal_texture;
+  normal_texture.LoadFromFile(FindAssetsFile("texture/normal.png"),
+                                  LDRColorSpace::UNORM);
+  auto normal_texture_id =
+      asset_manager->LoadTexture(normal_texture, "NormalTexture");
+  scene->SetEntityNormalTexture(back_wall_id, normal_texture_id);
+
   scene->SetEnvmapSettings({0.0f, 0.0f, 0, 0});
+  /*auto envmap = scene->GetEnvMap();
+
+  Texture envmap_texture;
+  envmap_texture.LoadFromFile(FindAssetsFile("texture/envmap_clouds_4k.hdr"),
+                              LDRColorSpace::UNORM);
+  auto envmap_id = asset_manager->LoadTexture(envmap_texture, "Envmap");
+  envmap->SetEnvmapTexture(envmap_id);
+  scene->SetEnvmapSettings({0.0f, 1.0f, uint32_t(envmap_id), 0});*/
 
   scene->Camera()->SetPosition({278.0f, 273.0f, -800.0f});
   scene->Camera()->SetEulerAngles({0.0f, glm::radians(180.0f), 0.0f});

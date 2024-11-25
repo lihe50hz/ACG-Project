@@ -5,6 +5,7 @@
 #define MATERIAL_TYPE_SPECULAR 1
 #define MATERIAL_TYPE_PRINCIPLED 2
 #define MATERIAL_TYPE_VOLUMETRIC 3
+#define MATERIAL_TYPE_POINTLIGHT 4
 
 struct Material {
   vec3 base_color;
@@ -44,6 +45,7 @@ struct Material {
   float g;
   
   vec3 velocity;
+  vec3 center;
 };
 
 #endif

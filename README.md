@@ -52,11 +52,11 @@
 
   1. Transmissive material (basic)
 
-     > Waiting for register.
+     > He Li has implemented this.
 
   2. Principled BSDF (2pts)
 
-     > Waiting for register.
+     > He Li has implemented this.
 
   3. Multi-layer material (2pts)
 
@@ -70,11 +70,11 @@
 
   1. Color texture (basic)
 
-     > Waiting for register.
+     > He Li has implemented this.
 
   2. Normal map, height map, attribute map, or any functional texture mapping (1pt for each, up to 2pts)
 
-     > Waiting for register.
+     > He Li has implemented normal map.
 
   3. Implement an adaptive mipmap algorithm (2pts)
 
@@ -84,7 +84,7 @@
 
   1. Use more advanced sampling algorithms for path tracing. (Importance sampling with Russian Roulette, multiple importance sampling 2pts)
 
-     > Waiting for register.
+     > He Li has implemented this.
 
 - Volumetric Rendering: Options include:
 
@@ -96,11 +96,11 @@
 
      > Chenglin Liu has implemented this.
 
-  3. Inhomogeneous volume rendering (1pt)
+  3. Channel-independent subsurface scattering (1pt)
 
      > registered by Chenglin Liu.
 
-  4. Channel-independent subsurface scattering (1pt)
+  4. Inhomogeneous volume rendering (1pt)
 
      > registered by Chenglin Liu.
 
@@ -134,11 +134,11 @@
 
   1. Point light and area light (basic)
 
-     > Waiting for register.
+     > He Li has implemented this.
 
   2. Environment lighting with HDR, such as skybox (2pts)
 
-     > Waiting for register.
+     > He Li has implemented this.
 
 - Anti-aliasing: Implement an anti-aliasing algorithm (basic)
 
