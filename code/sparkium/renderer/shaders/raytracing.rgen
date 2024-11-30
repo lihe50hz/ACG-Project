@@ -570,7 +570,7 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
             pdf = max(1e-3, abs(dot(wo, material.normal))) * max(1e-3, abs(dot(wi, material.normal))) / PI;
 			break;
 		case MATERIAL_TYPE_SPECULAR:
-			wi = reflect(wo, hit_record.shading_normal);
+			wi = reflect(wo, material.normal);
             pdf = 1.0;
 			break;
 		case MATERIAL_TYPE_PRINCIPLED:
@@ -628,7 +628,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
             return material.base_color * max(1e-3, abs(dot(wo, material.normal))) * max(1e-3, abs(dot(wi, material.normal))) / PI / P_RR / pdf;
 			break;
 		case MATERIAL_TYPE_SPECULAR:
-			vec3 w_reflect = reflect(wo, hit_record.shading_normal);
+			vec3 w_reflect = reflect(wo, material.normal);
             if (dot(w_reflect, wi) > 1.0 - 1e-3) return material.base_color / P_RR / pdf;
             else return vec3(0.0);
 			break;
@@ -747,9 +747,9 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 			    // Compute the direct lighting and right normals
                 float origin_cos = max(1e-3, abs(dot(origin_normal, light_direction)));
                 vec3 light_intrinsic = emission * emission_strength;
-			    float light_attenuation = origin_cos / (light_distance * light_distance);
+			    float light_attenuation = origin_cos / light_distance;
                 pdf = sampled_probability / light_attenuation;
-			    color_direct = light_intrinsic * 5000;
+			    color_direct = light_intrinsic * 10000;
 		    }
             // Return the direct lighting
             if (length(color_direct) > 1e-6) // Sampled direct light is not none
