@@ -486,7 +486,8 @@ int Renderer::CreateRayTracingFilm(uint32_t width,
           VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       &film.accumulated_radiance_image);
 
-  Core()->Device()->CreateImage(VK_FORMAT_R32_SFLOAT, VkExtent2D{width, height},
+  Core()->Device()->CreateImage(
+      VK_FORMAT_R32G32B32A32_SFLOAT, VkExtent2D{width, height},
                                 VK_IMAGE_USAGE_STORAGE_BIT |
                                     VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT,

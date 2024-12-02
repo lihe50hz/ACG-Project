@@ -17,6 +17,7 @@ struct SceneSettings {
   uint num_entity;
   bool enable_direct_lighting;
   bool enable_volumetric_rendering;
+  bool enable_wave_effect;
   float aperture;
   float focal_distance;
   vec3 camera_velocity;
