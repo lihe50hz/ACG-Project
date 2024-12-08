@@ -27,9 +27,9 @@ class Mesh {
     return indices_;
   }
 
-  void ThisIsPointLight() {
+  void ThisIsPointLight(glm::vec3 shift = glm::vec3{-131.452f, -114.514f, -191.981f}) {
     for (auto &vertex : vertices_)
-      vertex.position = vertex.position + glm::vec3{-131.452f, -114.514f, -191.981f};
+      vertex.position = vertex.position + shift;
   }
 
  private:

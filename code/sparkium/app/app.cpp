@@ -506,6 +506,10 @@ ImVec2 Application::ImGuiSettingsWindow() {
         ImGui::Checkbox("Volumetric Rendering",
                         reinterpret_cast<bool *>(
                             &editing_scene_settings_.enable_volumetric_rendering));
+    render_settings_changed_ |= ImGui::Checkbox(
+        "Wave Effect",
+        reinterpret_cast<bool *>(
+            &editing_scene_settings_.enable_wave_effect));
     scene_->SetSceneSettings(editing_scene_settings_);
   }
   if (ImGui::CollapsingHeader("Environment Map Settings")) {
