@@ -10,6 +10,10 @@ constexpr uint32_t MATERIAL_TYPE_PRINCIPLED = 2;
 constexpr uint32_t MATERIAL_TYPE_VOLUMETRIC = 3;
 constexpr uint32_t MATERIAL_TYPE_POINTLIGHT = 4;
 
+// Definition of volumetric type ids
+constexpr uint32_t VOLUMETRIC_TYPE_HOMOGENEOUS = 0; // homogeneous
+constexpr uint32_t VOLUMETRIC_TYPE_CENTRALIZED = 1; // inhomogeneous with center
+
 // clang-format off
 struct Material {
   glm::vec3 base_color{1.0f};
@@ -48,8 +52,10 @@ struct Material {
   float sigma_a{0.0f};  // absorption coefficient
   float sigma_s{0.0f};  // scattering coefficient
   float g{0.0f};        // asymmetry parameter for Henyey-Greenstein phase function
-
-  float padding_0;
+  
+  uint32_t volumetric_type{0};
+  glm::vec3 volumetric_center{0.0f}; // for volumetric type 1
+  float center_decay{0.0f};          // for volumetric type 1
 
   // for motion blur
   glm::vec3 velocity{0.0f}; // the velocity of the object for motion blur

@@ -7,6 +7,9 @@
 #define MATERIAL_TYPE_VOLUMETRIC 3
 #define MATERIAL_TYPE_POINTLIGHT 4
 
+#define VOLUMETRIC_TYPE_HOMOGENEOUS 0
+#define VOLUMETRIC_TYPE_CENTRALIZED 1
+
 struct Material {
   vec3 base_color;
   float subsurface;
@@ -43,6 +46,10 @@ struct Material {
   float sigma_a;
   float sigma_s;
   float g;
+
+  uint volumetric_type;
+  vec3 volumetric_center;
+  float center_decay;
   
   vec3 velocity;
   vec3 center;

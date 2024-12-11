@@ -1002,13 +1002,29 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
 
                 // sample t using exponential distribution
                 float t_sp = SampleExponential(sigma_maj);
+                vec3 sample_point = origin + direction * t_sp;
                 // exit the object
                 if (t_sp > ray_payload.t)
                     break;
+                
+                // compute the sigma_a, sigma_s for sampled point
+                float sigma_a = 0.0f;
+                float sigma_s = 0.0f;
+                switch (material.volumetric_type) {
+                    case VOLUMETRIC_TYPE_HOMOGENEOUS:
+                        sigma_a = material.sigma_a;
+                        sigma_s = material.sigma_s;
+                        break;
+                    case VOLUMETRIC_TYPE_CENTRALIZED:
+                        float decay = exp(-material.center_decay * sqrt(dot(sample_point - material.volumetric_center, sample_point - material.volumetric_center)));
+                        sigma_a = material.sigma_a * decay;
+                        sigma_s = material.sigma_s * decay;
+                        break;
+                }
 
                 // probability for 3 kinds of events
-                float p_absorb = material.sigma_a / sigma_maj;
-                float p_scatter = material.sigma_s / sigma_maj;
+                float p_absorb = sigma_a / sigma_maj;
+                float p_scatter = sigma_s / sigma_maj;
                 float p_null = max(1 - p_absorb - p_scatter, 0.0f);
                 float u = RandomFloat();
                 
@@ -1020,7 +1036,7 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
                 }
                 // scattering event, sample a direction, continue the outer loop
                 else if (u < p_absorb + p_scatter) {
-                    origin = origin + direction * t_sp;
+                    origin = sample_point;
                     direction = SampleHG(material.g, direction);
                     scattered = true;
                     break;

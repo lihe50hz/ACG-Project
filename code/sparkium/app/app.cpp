@@ -611,6 +611,16 @@ ImVec2 Application::ImGuiSettingsWindow() {
             ImGui::SliderFloat("Scattering", &material.sigma_s, 0.0f, 0.1f);
         render_settings_changed_ |=
             ImGui::SliderFloat("Asymmetry", &material.g, -1.0f, 1.0f);
+        
+        const char *volumetric_type_names[] = {"Homogeneous", "Centralized Inhomogenous"};
+        render_settings_changed_ |=
+            ImGui::Combo("Volumetric Type", reinterpret_cast<int *>(&material.volumetric_type),
+                        volumetric_type_names, 2);
+        
+        if (material.volumetric_type == 1) {
+          render_settings_changed_ |=
+            ImGui::SliderFloat("Centralized Decay", &material.center_decay, 0.0f, 0.1f);
+        }
       }
 
       scene_->SetEntityMaterial(selected_instances_[0], material);
@@ -620,13 +630,11 @@ ImVec2 Application::ImGuiSettingsWindow() {
 
   static char save_path[256] = "D:\\UserFiles\\Tsinghua\\2024FallGrade3\\ACG\\project\\3.png";  // Ĭ��·��
 
-  // �����������ָ��·��
   ImGui::InputText("Save Path", save_path, IM_ARRAYSIZE(save_path));
 
-  // ���ϱ��水ť
   if (ImGui::Button("Save Rendered Image")) {
-    save_image_ = true;  // ���ñ�־λ��֪ͨOnRender�����ļ�
-    save_image_path_ = std::string(save_path);  // ���ñ���·��
+    save_image_ = true;
+    save_image_path_ = std::string(save_path);
   }
 
   ImGui::End();
