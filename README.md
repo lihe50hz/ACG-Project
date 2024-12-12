@@ -98,11 +98,11 @@
 
   3. Channel-independent subsurface scattering (1pt)
 
-     > registered by Chenglin Liu.
+     > Chenglin Liu has implemented this.
 
   4. Inhomogeneous volume rendering (1pt)
 
-     > registered by Chenglin Liu.
+     > Chenglin Liu has implemented this.
 
   5. Volumetric emission (1pt)
 
@@ -110,7 +110,7 @@
 
   6. Volumetric alpha shadow (2pts)
 
-     > registered by Chenglin Liu.
+     > Chenglin Liu has implemented this.
 
 - Special Visual Effects: Options include:
 
