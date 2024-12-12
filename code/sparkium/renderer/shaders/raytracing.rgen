@@ -834,6 +834,25 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 
 }
 
+// normalize a vec3 in chromatic case
+vec3 ChromaticNormalize(vec3 f) {
+    if (sqrt(dot(f, f)) < 1e-4)
+        return f;
+    return f * 3 / (f.x + f.y + f.z);
+}
+
+// handle division when computing probability in chromatic case
+vec3 HandleDivide(vec3 a, vec3 b) {
+    vec3 res = vec3(0.0f);
+    for (int i = 0; i < 3; i++) {
+        if (b[i] == 0)
+            res[i] = 0.5f;
+        else 
+            res[i] = a[i] / b[i];
+    }
+    return res;
+}
+
 // sample according to exponential distribution
 float SampleExponential(float sigma) {
     float u = RandomFloat();
@@ -993,29 +1012,44 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
             bool scattered = false;
             // while loop for sampling t in the volumetric object
             while (true) {
-                // the majorant for homogeneous media
-                float sigma_maj = material.sigma_a + material.sigma_s;
+                // the majorant for (in)homogeneous media
+                vec3 sigma_maj = material.sigma_a + material.sigma_s;
 
+                // the pdf when exiting the object
+                vec3 pdf_exit = ChromaticNormalize(exp(-sigma_maj * ray_payload.t));
+                
+                // randomly select a channel
+                uint chan_1 = RandomUint() % 3;
+                
                 // do not set absorption or scattering, directly exit the object
-                if (sigma_maj < 1e-4)
+                if (sigma_maj[chan_1] < 1e-4) {
+                    accumulated_coef *= pdf_exit;
                     break;
+                }
 
                 // sample t using exponential distribution
-                float t_sp = SampleExponential(sigma_maj);
+                float t_sp = SampleExponential(sigma_maj[chan_1]);
                 vec3 sample_point = origin + direction * t_sp;
+
                 // exit the object
-                if (t_sp > ray_payload.t)
+                if (t_sp > ray_payload.t) {
+                    accumulated_coef *= pdf_exit;
                     break;
+                }
+
+                // the pdf when not exiting the object
+                vec3 pdf_maj = ChromaticNormalize(sigma_maj * exp(-sigma_maj * t_sp));
+                accumulated_coef *= pdf_maj;
                 
                 // compute the sigma_a, sigma_s for sampled point
-                float sigma_a = 0.0f;
-                float sigma_s = 0.0f;
+                vec3 sigma_a = vec3(0.0f);
+                vec3 sigma_s = vec3(0.0f);
                 switch (material.volumetric_type) {
-                    case VOLUMETRIC_TYPE_HOMOGENEOUS:
+                    case VOLUMETRIC_TYPE_HOMOGENEOUS: // homogeneous media
                         sigma_a = material.sigma_a;
                         sigma_s = material.sigma_s;
                         break;
-                    case VOLUMETRIC_TYPE_CENTRALIZED:
+                    case VOLUMETRIC_TYPE_CENTRALIZED: // inhomogeneous centralized media
                         float decay = exp(-material.center_decay * sqrt(dot(sample_point - material.volumetric_center, sample_point - material.volumetric_center)));
                         sigma_a = material.sigma_a * decay;
                         sigma_s = material.sigma_s * decay;
@@ -1023,19 +1057,23 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
                 }
 
                 // probability for 3 kinds of events
-                float p_absorb = sigma_a / sigma_maj;
-                float p_scatter = sigma_s / sigma_maj;
-                float p_null = max(1 - p_absorb - p_scatter, 0.0f);
+                vec3 p_absorb = HandleDivide(sigma_a, sigma_maj);
+                vec3 p_scatter = HandleDivide(sigma_s, sigma_maj);
+                vec3 p_null = max(vec3(1.0f) - p_absorb - p_scatter, 0.0f);
                 float u = RandomFloat();
+            
+                uint chan_2 = RandomUint() % 3; // randomly select a channel
                 
                 // emission event, exit the outer loop
-                if (u < p_absorb) {
+                if (u < p_absorb[chan_2]) {
+                    accumulated_coef *= ChromaticNormalize(p_absorb);
                     accumulated_color += accumulated_coef * material.l_e * material.l_e_strength;
                     terminated = true;
                     break;
                 }
                 // scattering event, sample a direction, continue the outer loop
-                else if (u < p_absorb + p_scatter) {
+                else if (u < p_absorb[chan_2] + p_scatter[chan_2]) {
+                    accumulated_coef *= ChromaticNormalize(p_scatter);
                     origin = sample_point;
                     direction = SampleHG(material.g, direction);
                     scattered = true;
@@ -1043,6 +1081,9 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
                 }
                 // null event, continue sampling t
                 else {
+                    accumulated_coef *= ChromaticNormalize(p_null);
+                    origin = sample_point;
+                    TraceRay(origin, direction);
                     continue;
                 }
             }

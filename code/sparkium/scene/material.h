@@ -49,9 +49,9 @@ struct Material {
   // for volumetric rendering
   glm::vec3 l_e{0.0f};  // volumetric emission base color
   float l_e_strength{0.0f};  // volumetric emission strength
-  float sigma_a{0.0f};  // absorption coefficient
-  float sigma_s{0.0f};  // scattering coefficient
+  glm::vec3 sigma_a{0.0f};  // absorption coefficient, chromatic
   float g{0.0f};        // asymmetry parameter for Henyey-Greenstein phase function
+  glm::vec3 sigma_s{0.0f};  // scattering coefficient, chromatic
   
   uint32_t volumetric_type{0};
   glm::vec3 volumetric_center{0.0f}; // for volumetric type 1

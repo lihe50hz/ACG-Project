@@ -605,10 +605,10 @@ ImVec2 Application::ImGuiSettingsWindow() {
             ImGui::ColorEdit3("Volumetric Emission", &material.l_e.r);
         render_settings_changed_ |=
             ImGui::SliderFloat("Volumetric Emission Strength", &material.l_e_strength, 0.0f, 5.0f);
-        render_settings_changed_ |=
-            ImGui::SliderFloat("Absorption", &material.sigma_a, 0.0f, 0.1f);
-        render_settings_changed_ |=
-            ImGui::SliderFloat("Scattering", &material.sigma_s, 0.0f, 0.1f);
+        render_settings_changed_ |= ImGui::SliderFloat3(
+            "Absorption", &material.sigma_a.x, 0.0f, 0.1f, "%.2f");
+        render_settings_changed_ |= ImGui::SliderFloat3(
+            "Scattering", &material.sigma_s.x, 0.0f, 0.1f, "%.2f");
         render_settings_changed_ |=
             ImGui::SliderFloat("Asymmetry", &material.g, -1.0f, 1.0f);
         

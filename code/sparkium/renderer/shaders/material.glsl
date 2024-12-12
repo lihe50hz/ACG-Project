@@ -43,9 +43,9 @@ struct Material {
 
   vec3 l_e;
   float l_e_strength;
-  float sigma_a;
-  float sigma_s;
+  vec3 sigma_a;
   float g;
+  vec3 sigma_s;
 
   uint volumetric_type;
   vec3 volumetric_center;
