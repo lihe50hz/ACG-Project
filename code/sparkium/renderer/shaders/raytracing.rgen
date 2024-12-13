@@ -691,6 +691,114 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
     return vec3(0.0);
 }
 
+// sample according to exponential distribution
+float SampleExponential(float sigma) {
+    float u = RandomFloat();
+    return -log(u) / sigma;
+}
+
+// get the sigma_a and sigma_s for the given point according to the volumetric type
+void GetVolPara(Material material, vec3 point, out vec3 sigma_a, out vec3 sigma_s) {
+    switch (material.volumetric_type) {
+        case VOLUMETRIC_TYPE_HOMOGENEOUS: // homogeneous media
+            sigma_a = material.sigma_a;
+            sigma_s = material.sigma_s;
+            break;
+        case VOLUMETRIC_TYPE_CENTRALIZED: // inhomogeneous centralized media
+            float decay = exp(-material.center_decay * length(point - material.volumetric_center));
+            sigma_a = material.sigma_a * decay;
+            sigma_s = material.sigma_s * decay;
+            break;
+    }
+}
+
+// normalize a vec3 in chromatic case
+vec3 ChromaticNormalize(vec3 f) {
+    if (length(f) < 1e-4)
+        return f;
+    return f * 3 / (f.x + f.y + f.z);
+}
+
+// compute the transmittance along the path
+// "dist" is the distance of the path
+vec3 ComputeTransmittance(vec3 origin, vec3 direction, float dist) {
+    vec3 trans = vec3(1.0f);
+    bool outside = true;
+    while (true) {
+        TraceRay(origin, direction);
+        HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
+        Material material = GetMaterial(hit_record);
+
+        if (outside) {
+            // arrive at the target object
+            if (ray_payload.t > dist - 1e-3)
+                return trans;
+            // blocked
+            if (material.type != MATERIAL_TYPE_VOLUMETRIC)
+                return vec3(0.0f);
+            // encounter volumetric object, enter into it
+            outside = false;
+            origin = hit_record.position;
+            dist -= ray_payload.t;  // update distance
+            continue;
+        }
+
+        // accumulate transmittance in the volumetric object
+        float tar_t = min(ray_payload.t, dist);  // maximal distance to transmit
+        bool tar_inside = (ray_payload.t > dist - 1e-3);  // whether the target is in the object
+        // while loop for sampling t in the volumetric object
+        while (true) {
+            vec3 sigma_maj = material.sigma_a + material.sigma_s;
+            // the pdf when exiting the object
+            vec3 pdf_exit = ChromaticNormalize(exp(-sigma_maj * tar_t));
+            // randomly select a channel
+            uint chan = RandomUint() % 3;
+            
+            // do not set absorption or scattering, directly exit the object
+            if (sigma_maj[chan] < 1e-4) {
+                trans *= pdf_exit;
+                if (tar_inside)  // arrive at the target
+                    return trans;
+                // leave the object
+                outside = true;
+                origin = hit_record.position;
+                dist -= tar_t;  // update distance
+                break;
+            }
+
+            // sample t using exponential distribution
+            float t_sp = SampleExponential(sigma_maj[chan]);
+            vec3 sample_point = origin + direction * t_sp;
+
+            // exit the object
+            if (t_sp > tar_t) {
+                trans *= pdf_exit;
+                if (tar_inside)  // arrive at the target
+                    return trans;
+                // leave the object
+                outside = true;
+                origin = hit_record.position;
+                dist -= tar_t;  // update distance
+                break;
+            }
+            
+            // compute the sigma_a, sigma_s for sampled point
+            vec3 sigma_a = vec3(0.0f);
+            vec3 sigma_s = vec3(0.0f);
+            GetVolPara(material, sample_point, sigma_a, sigma_s);
+            vec3 sigma_n = sigma_maj - sigma_a - sigma_s;
+
+            // compute the accumulated transmittance for this sample point
+            vec3 tmp = sigma_maj * exp(-sigma_maj * t_sp);
+            trans *= sigma_n * exp(-sigma_maj * t_sp) * 3.0f / (tmp.x + tmp.y + tmp.z);
+            
+            // update distance
+            tar_t -= t_sp;
+            dist -= t_sp;
+        }
+    }
+}
+
 vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, vec3 wo, vec3 wm, float P_RR, uint type, out float pdf, bool trans, out float time){
     // Compute the direct lighting
     vec3 color_direct = vec3(0.0);
@@ -734,9 +842,13 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
             float light_distance = length(light_direction);
             light_direction = normalize(light_direction);
             color_direct_direction = normalize(sampled_point - origin);
-            TraceRay(sampled_point, light_direction);
-            time = ray_payload.t;
-            if (ray_payload.t > light_distance - 1e-3){
+            time = light_distance;
+
+            // get the transmittance along the path
+            vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance);
+
+            // not blocked
+            if (length(transmittance) > 1e-4){
                 // Origin
                 Material origin_material = material;
                 vec3 origin_normal = origin_material.normal;
@@ -749,8 +861,13 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
                 vec3 light_intrinsic = emission * emission_strength;
 			    float light_attenuation = origin_cos / light_distance;
                 pdf = sampled_probability / light_attenuation;
-			    color_direct = light_intrinsic * 10000;
+			    color_direct = light_intrinsic * transmittance * 10000;
 		    }
+            // blocked
+            else {
+                color_direct = vec3(0.0f);
+            }
+
             // Return the direct lighting
             if (length(color_direct) > 1e-6) // Sampled direct light is not none
                 return color_direct * EvaluateAll(hit_record, material, wo, wm, color_direct_direction, P_RR, pdf, type, trans);
@@ -801,11 +918,13 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
         float light_distance = length(light_direction);
         light_direction = normalize(light_direction);
         color_direct_direction = normalize(sampled_point - origin);
-        TraceRay(sampled_point, light_direction);
-        time = ray_payload.t;
+        time = light_distance;
 
-        if (ray_payload.t > light_distance - 1e-3){
-            
+        // get the transmittance along the path
+        vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance);
+
+        // not blocked
+        if (length(transmittance) > 1e-4){
             // Origin
             Material origin_material = material;
             vec3 origin_normal = origin_material.normal;
@@ -823,8 +942,12 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
             vec3 light_intrinsic = emission * emission_strength;
 			float light_attenuation = light_cos * origin_cos / (light_distance * light_distance);
             pdf = sampled_probability / light_area / light_attenuation;
-			color_direct = light_intrinsic;
+			color_direct = light_intrinsic * transmittance;
 		}
+        // blocked
+        else {
+            color_direct = vec3(0.0f);
+        }
     }
 
     // Return the direct lighting
@@ -834,10 +957,16 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 
 }
 
-// sample according to exponential distribution
-float SampleExponential(float sigma) {
-    float u = RandomFloat();
-    return -log(u) / sigma;
+// handle division when computing probability in chromatic case
+vec3 HandleDivide(vec3 a, vec3 b) {
+    vec3 res = vec3(0.0f);
+    for (int i = 0; i < 3; i++) {
+        if (b[i] == 0)
+            res[i] = 0.5f;
+        else 
+            res[i] = a[i] / b[i];
+    }
+    return res;
 }
 
 // sample according to Henyey-Greenstein distribution
@@ -993,40 +1122,68 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
             bool scattered = false;
             // while loop for sampling t in the volumetric object
             while (true) {
-                // the majorant for homogeneous media
-                float sigma_maj = material.sigma_a + material.sigma_s;
+                // the majorant for (in)homogeneous media
+                vec3 sigma_maj = material.sigma_a + material.sigma_s;
 
+                // the pdf when exiting the object
+                vec3 pdf_exit = ChromaticNormalize(exp(-sigma_maj * ray_payload.t));
+                
+                // randomly select a channel
+                uint chan_1 = RandomUint() % 3;
+                
                 // do not set absorption or scattering, directly exit the object
-                if (sigma_maj < 1e-4)
+                if (sigma_maj[chan_1] < 1e-4) {
+                    accumulated_coef *= pdf_exit;
                     break;
+                }
 
                 // sample t using exponential distribution
-                float t_sp = SampleExponential(sigma_maj);
+                float t_sp = SampleExponential(sigma_maj[chan_1]);
+                vec3 sample_point = origin + direction * t_sp;
+
                 // exit the object
-                if (t_sp > ray_payload.t)
+                if (t_sp > ray_payload.t) {
+                    accumulated_coef *= pdf_exit;
                     break;
+                }
+
+                // the pdf when not exiting the object
+                vec3 pdf_maj = ChromaticNormalize(sigma_maj * exp(-sigma_maj * t_sp));
+                accumulated_coef *= pdf_maj;
+                
+                // compute the sigma_a, sigma_s for sampled point
+                vec3 sigma_a = vec3(0.0f);
+                vec3 sigma_s = vec3(0.0f);
+                GetVolPara(material, sample_point, sigma_a, sigma_s);
 
                 // probability for 3 kinds of events
-                float p_absorb = material.sigma_a / sigma_maj;
-                float p_scatter = material.sigma_s / sigma_maj;
-                float p_null = max(1 - p_absorb - p_scatter, 0.0f);
+                vec3 p_absorb = HandleDivide(sigma_a, sigma_maj);
+                vec3 p_scatter = HandleDivide(sigma_s, sigma_maj);
+                vec3 p_null = max(vec3(1.0f) - p_absorb - p_scatter, 0.0f);
                 float u = RandomFloat();
+            
+                uint chan_2 = RandomUint() % 3; // randomly select a channel
                 
                 // emission event, exit the outer loop
-                if (u < p_absorb) {
+                if (u < p_absorb[chan_2]) {
+                    accumulated_coef *= ChromaticNormalize(p_absorb);
                     accumulated_color += accumulated_coef * material.l_e * material.l_e_strength;
                     terminated = true;
                     break;
                 }
                 // scattering event, sample a direction, continue the outer loop
-                else if (u < p_absorb + p_scatter) {
-                    origin = origin + direction * t_sp;
+                else if (u < p_absorb[chan_2] + p_scatter[chan_2]) {
+                    accumulated_coef *= ChromaticNormalize(p_scatter);
+                    origin = sample_point;
                     direction = SampleHG(material.g, direction);
                     scattered = true;
                     break;
                 }
                 // null event, continue sampling t
                 else {
+                    accumulated_coef *= ChromaticNormalize(p_null);
+                    origin = sample_point;
+                    TraceRay(origin, direction);
                     continue;
                 }
             }
