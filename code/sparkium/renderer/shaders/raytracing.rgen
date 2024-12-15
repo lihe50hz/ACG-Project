@@ -686,7 +686,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
             }
             break;
         case MATERIAL_TYPE_VOLUMETRIC:
-            return vec3(1.0);
+            return vec3(1.0 / (4.0 * PI * pdf));
             break;
         case MATERIAL_TYPE_POINTLIGHT:
             return vec3(1.0);
@@ -1093,7 +1093,6 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
 
     bool outside = true; // whether the ray is currently outside any object
     bool volumetric = scene_settings.enable_volumetric_rendering;
-    bool compute_direct_light = true;
 
     // Coefficient for compute shading
     float color_direct_pdf;
@@ -1116,7 +1115,7 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
             break;
 
         // Direct lighting
-        if (compute_direct_light && depth != 0 && scene_settings.enable_direct_lighting && last_type != 2){
+        if (depth != 0 && scene_settings.enable_direct_lighting && last_type != 2){
             float time;
             color_direct = EvaluateDirectLight(last_hit_record, origin, last_material, last_direction, last_wm, P_RR, last_type, color_direct_pdf, last_trans, time);
             if (depth == 1)total_time += time;
@@ -1124,7 +1123,6 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
         else { // No direct light is computed
             color_direct = vec3(0.0);
             color_direct_pdf = 0.0;
-            compute_direct_light = true;
         }
 
         // Path tracing
@@ -1151,7 +1149,6 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
             last_type = 0;
             last_wm = vec3(0.0);
             last_trans = false;
-            compute_direct_light = false;
             continue;
         }
         // not enable volumetric, or the ray interacts with non-volumetric object
@@ -1286,7 +1283,6 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
             // exit the object
             outside = true;
             origin = hit_record.position;
-            compute_direct_light = false;
 
             // Update the ray origin and direction for the next bounce
             last_direction = direction;
