@@ -6,6 +6,7 @@
 #define MATERIAL_TYPE_PRINCIPLED 2
 #define MATERIAL_TYPE_VOLUMETRIC 3
 #define MATERIAL_TYPE_POINTLIGHT 4
+#define MATERIAL_TYPE_PARALLELLIGHT 5
 
 #define VOLUMETRIC_TYPE_HOMOGENEOUS 0
 #define VOLUMETRIC_TYPE_CENTRALIZED 1
@@ -52,7 +53,10 @@ struct Material {
   float center_decay;
   
   vec3 velocity;
+
   vec3 center;
+  float radius;
+  vec3 direction;
 };
 
 #endif

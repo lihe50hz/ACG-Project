@@ -378,6 +378,23 @@ void LoadCornellBox(Scene *scene) {
   scene->SetEntityMesh(testt_id, testt_mesh_id);
   scene->SetEntityMaterial(testt_id, testt_material);*/
 
+	// parallel light
+  Mesh para_light;
+  para_light.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  para_light.Shift(glm::vec3{-600.0f, -600.0f, -600.0f});
+  int para_light_mesh_id = asset_manager->LoadMesh(para_light, "Cube");
+  Material para_material;
+  para_material.base_color = {0.0f, 0.0f, 0.8f};
+  para_material.emission = {1.0f, 1.0f, 1.0f};
+  para_material.emission_strength = 10.0f;
+  para_material.type = MATERIAL_TYPE_PARALLELLIGHT;  // Point Light
+  para_material.center = {20.0f, 520.0f, 520.0f};
+  para_material.direction = {2.0f, -1.0f, -1.0f};
+  para_material.radius = 10.0f;
+  int para_light_id = scene->CreateEntity();
+  scene->SetEntityMesh(para_light_id, para_light_mesh_id);
+  scene->SetEntityMaterial(para_light_id, para_material);
+
   Texture iiis_texture;
   iiis_texture.LoadFromFile(
       FindAssetsFile("texture/IIIS.png"),

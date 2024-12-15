@@ -32,6 +32,11 @@ class Mesh {
       vertex.position = vertex.position + shift;
   }
 
+  void Shift(glm::vec3 shift) {
+    for (auto &vertex : vertices_)
+      vertex.position = vertex.position + shift;
+  }
+
  private:
   void MergeVertices();
 

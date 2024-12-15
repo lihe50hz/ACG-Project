@@ -834,8 +834,8 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
     // If we have sampled an entity, sample a triangle
     random_number = RandomFloat();
     if (sampled_entity_id != -1){
-        // Deal with point light
         Material light_material = materials[sampled_entity_id];
+        // Deal with point light
         if (light_material.type == MATERIAL_TYPE_POINTLIGHT){
             vec3 sampled_point = light_material.center;
             vec3 light_direction = origin - sampled_point;
@@ -862,6 +862,62 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 			    float light_attenuation = origin_cos / light_distance;
                 pdf = sampled_probability / light_attenuation;
 			    color_direct = light_intrinsic * transmittance * 10000;
+		    }
+            // blocked
+            else {
+                color_direct = vec3(0.0f);
+            }
+
+            // Return the direct lighting
+            if (length(color_direct) > 1e-6) // Sampled direct light is not none
+                return color_direct * EvaluateAll(hit_record, material, wo, wm, color_direct_direction, P_RR, pdf, type, trans);
+            return vec3(0.0);
+        } 
+        // Deal with parallel light
+        else if (light_material.type == MATERIAL_TYPE_PARALLELLIGHT) {
+            // basic parameters
+            vec3 light_center = light_material.center;
+            vec3 normal = normalize(light_material.direction);
+            float radius = light_material.radius;
+            vec3 skew_direction = origin - light_center;
+
+            // at the back of the light
+            if (dot(normal, skew_direction) < 0) {
+                return vec3(0.0f);
+            }
+
+            // compute the projection
+            vec3 light_direction = normal * dot(skew_direction, normal);
+            vec3 sampled_point = origin - light_direction;
+
+            // projection point too far away from center
+            if (length(sampled_point - light_center) > radius) {
+                return vec3(0.0f);
+            }
+
+            float light_distance = length(light_direction);
+            light_direction = normalize(light_direction);
+            color_direct_direction = normalize(sampled_point - origin);
+            time = light_distance;
+
+            // get the transmittance along the path
+            vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance);
+
+            // not blocked
+            if (length(transmittance) > 1e-4){
+                // Origin
+                Material origin_material = material;
+                vec3 origin_normal = origin_material.normal;
+                // Light
+                vec3 emission = light_material.emission;
+                float emission_strength = light_material.emission_strength;
+
+			    // Compute the direct lighting and right normals
+                float origin_cos = max(1e-3, abs(dot(origin_normal, light_direction)));
+                vec3 light_intrinsic = emission * emission_strength;
+			    float light_attenuation = origin_cos;
+                pdf = sampled_probability / light_attenuation;
+			    color_direct = light_intrinsic * transmittance * 200;
 		    }
             // blocked
             else {
