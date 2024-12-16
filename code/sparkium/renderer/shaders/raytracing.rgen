@@ -558,6 +558,11 @@ vec3 SampleDisneyClearcoat(Material material, vec3 wo, out float forwardPdf){
     return wi;
 }
 
+float ComputeHG(float g, float cos_theta) {
+    float denom = 1 + g * g + 2 * g * cos_theta;
+    return 1.0f / (PI * 4) * (1 - g * g) / (denom * sqrt(denom));
+}
+
 // For overllall Sampling and Evaluation
 uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, out vec3 wi, out float pdf, out bool trans) {
     uint type=0;
@@ -686,7 +691,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
             }
             break;
         case MATERIAL_TYPE_VOLUMETRIC:
-            return vec3(1.0 / (4.0 * PI * pdf));
+            return vec3(ComputeHG(material.g, dot(wi, wo)) / pdf);
             break;
         case MATERIAL_TYPE_POINTLIGHT:
             return vec3(1.0);
