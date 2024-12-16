@@ -33,7 +33,7 @@ void LoadCornellBox(Scene *scene) {
   // <vertex position="213.0 548.7 227.0" tex_coord="0 1"/>
   
   
-  vertices.push_back(make_vertex({343.0f, 548.7f, 227.0f}, {0.0f, 0.0f}));
+  /*vertices.push_back(make_vertex({343.0f, 548.7f, 227.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({343.0f, 548.7f, 332.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({213.0f, 548.7f, 332.0f}, {1.0f, 1.0f}));
   vertices.push_back(make_vertex({213.0f, 548.7f, 227.0f}, {0.0f, 1.0f}));
@@ -45,7 +45,7 @@ void LoadCornellBox(Scene *scene) {
   light_material.emission_strength = 100.0f;
   int light_id = scene->CreateEntity();
   scene->SetEntityMesh(light_id, light_mesh_id);
-  scene->SetEntityMaterial(light_id, light_material);
+  scene->SetEntityMaterial(light_id, light_material);*/
 
 
   // floor
@@ -360,12 +360,12 @@ void LoadCornellBox(Scene *scene) {
   test_material.emission = {1.0f, 1.0f, 1.0f};
   test_material.emission_strength = 10.0f;
   test_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
-  test_material.center = {60.0f, 105.0f, 80.0f};
+  test_material.center = {550.0f, 540.0f, 550.0f};
   int test_id = scene->CreateEntity();
   scene->SetEntityMesh(test_id, test_mesh_id);
-  scene->SetEntityMaterial(test_id, test_material);
+  scene->SetEntityMaterial(test_id, test_material);*/
   
-  testt.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  /*testt.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
   testt.ThisIsPointLight(glm::vec3{131.452f, -114.514f, -191.981f});
   int testt_mesh_id = asset_manager->LoadMesh(testt, "Cube");
   Material testt_material;
@@ -377,6 +377,23 @@ void LoadCornellBox(Scene *scene) {
   int testt_id = scene->CreateEntity();
   scene->SetEntityMesh(testt_id, testt_mesh_id);
   scene->SetEntityMaterial(testt_id, testt_material);*/
+
+	// parallel light
+  Mesh para_light;
+  para_light.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  para_light.Shift(glm::vec3{-600.0f, -600.0f, -600.0f});
+  int para_light_mesh_id = asset_manager->LoadMesh(para_light, "Cube");
+  Material para_material;
+  para_material.base_color = {0.0f, 0.0f, 0.8f};
+  para_material.emission = {1.0f, 1.0f, 1.0f};
+  para_material.emission_strength = 10.0f;
+  para_material.type = MATERIAL_TYPE_PARALLELLIGHT;  // Point Light
+  para_material.center = {20.0f, 520.0f, 520.0f};
+  para_material.direction = {2.0f, -1.0f, -1.0f};
+  para_material.radius = 5.0f;
+  int para_light_id = scene->CreateEntity();
+  scene->SetEntityMesh(para_light_id, para_light_mesh_id);
+  scene->SetEntityMaterial(para_light_id, para_material);
 
   Texture iiis_texture;
   iiis_texture.LoadFromFile(

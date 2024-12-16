@@ -536,10 +536,10 @@ ImVec2 Application::ImGuiSettingsWindow() {
           asset_manager_->ComboForMeshSelection("Mesh", &metadata.mesh_id);
 
       const char *material_type_names[] = {"Lambertian", "Specular",
-                                           "Principled", "Volumetric", "Pointlight"};
+          "Principled", "Volumetric", "Pointlight", "ParallelLight"};
       render_settings_changed_ |=
           ImGui::Combo("Material Type", reinterpret_cast<int *>(&material.type),
-                       material_type_names, 5);
+                       material_type_names, 6);
 
       render_settings_changed_ |=
           ImGui::ColorEdit3("Base Color", &material.base_color.r);
@@ -606,9 +606,9 @@ ImVec2 Application::ImGuiSettingsWindow() {
         render_settings_changed_ |=
             ImGui::SliderFloat("Volumetric Emission Strength", &material.l_e_strength, 0.0f, 5.0f);
         render_settings_changed_ |= ImGui::SliderFloat3(
-            "Absorption", &material.sigma_a.x, 0.0f, 0.1f, "%.2f");
+            "Absorption", &material.sigma_a.x, 0.0f, 0.1f, "%.3f");
         render_settings_changed_ |= ImGui::SliderFloat3(
-            "Scattering", &material.sigma_s.x, 0.0f, 0.1f, "%.2f");
+            "Scattering", &material.sigma_s.x, 0.0f, 0.1f, "%.3f");
         render_settings_changed_ |=
             ImGui::SliderFloat("Asymmetry", &material.g, -1.0f, 1.0f);
         
