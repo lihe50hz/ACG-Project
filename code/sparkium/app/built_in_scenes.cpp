@@ -31,9 +31,8 @@ void LoadCornellBox(Scene *scene) {
   // <vertex position="343.0 548.7 332.0" tex_coord="1 0"/>
   // <vertex position="213.0 548.7 332.0" tex_coord="1 1"/>
   // <vertex position="213.0 548.7 227.0" tex_coord="0 1"/>
-  
-  
-  /*vertices.push_back(make_vertex({343.0f, 548.7f, 227.0f}, {0.0f, 0.0f}));
+
+  vertices.push_back(make_vertex({343.0f, 548.7f, 227.0f}, {0.0f, 0.0f}));
   vertices.push_back(make_vertex({343.0f, 548.7f, 332.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({213.0f, 548.7f, 332.0f}, {1.0f, 1.0f}));
   vertices.push_back(make_vertex({213.0f, 548.7f, 227.0f}, {0.0f, 1.0f}));
@@ -42,11 +41,10 @@ void LoadCornellBox(Scene *scene) {
   Material light_material;
   light_material.base_color = {0.0f, 0.0f, 0.0f};
   light_material.emission = {1.0f, 1.0f, 1.0f};
-  light_material.emission_strength = 100.0f;
+  light_material.emission_strength = 0.0f;
   int light_id = scene->CreateEntity();
   scene->SetEntityMesh(light_id, light_mesh_id);
-  scene->SetEntityMaterial(light_id, light_material);*/
-
+  scene->SetEntityMaterial(light_id, light_material);
 
   // floor
   // <vertex position="552.8 0.0   0.0" tex_coord="0 0"/>
@@ -175,33 +173,30 @@ void LoadCornellBox(Scene *scene) {
   // <index value = "16" /><index value = "17" /><index value = "19" />
   // <index value = "17" /><index value = "18" /> <index value = "19" />
 
-
-
-  indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
-             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21, 23, 21, 22, 23};
-  vertices.clear();
-  vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {1.0f, 0.0f}));
+  /*indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
+             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21,
+  23, 21, 22, 23}; vertices.clear(); vertices.push_back(make_vertex({130.0f,
+  165.0f, 65.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f,
+  225.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({240.0f, 165.0f,
+  272.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({290.0f, 165.0f,
+  114.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({290.0f, 0.0f,
+  114.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({290.0f, 165.0f,
+  114.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({240.0f, 165.0f,
+  272.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({240.0f, 0.0f,
+  272.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f},
+  {0.0f, 0.0f})); vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {1.0f,
+  0.0f})); vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f},
+  {1.0f, 1.0f})); vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f},
+  {0.0f, 1.0f})); vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {0.0f,
+  0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f,
+  0.0f})); vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f},
+  {1.0f, 1.0f})); vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f},
+  {0.0f, 1.0f})); vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {0.0f,
+  0.0f})); vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f,
+  0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f},
+  {1.0f, 1.0f})); vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f},
+  {0.0f, 1.0f})); vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f,
+  0.0f})); vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {1.0f, 1.0f}));
   vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f}, {0.0f, 1.0f}));
   int short_box_mesh_id =
@@ -210,11 +205,10 @@ void LoadCornellBox(Scene *scene) {
   short_box_material.base_color = {0.8f, 0.8f, 0.8f};
   int short_box_id = scene->CreateEntity();
   scene->SetEntityMesh(short_box_id, short_box_mesh_id);
-  scene->SetEntityMaterial(short_box_id, short_box_material);
+  scene->SetEntityMaterial(short_box_id, short_box_material);*/
 
-
-  // box 2  
-  /*indices = {0,  1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,
+  // box 2
+  indices = {0,  1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,
              8,  9,  11, 9,  10, 11, 12, 13, 15, 13, 14, 15,
              16, 17, 19, 17, 18, 19, 20, 21, 23, 21, 22, 23};
   vertices.clear();
@@ -248,9 +242,7 @@ void LoadCornellBox(Scene *scene) {
   short_box2_material.base_color = {0.8f, 0.8f, 0.8f};
   int short_box2_id = scene->CreateEntity();
   scene->SetEntityMesh(short_box2_id, short_box2_mesh_id);
-  scene->SetEntityMaterial(short_box2_id, short_box2_material);*/
-
-
+  scene->SetEntityMaterial(short_box2_id, short_box2_material);
 
   // tall_box
   // <vertex position="423.0 330.0 247.0" tex_coord="0 0"/>
@@ -310,62 +302,59 @@ void LoadCornellBox(Scene *scene) {
   // <index value="18"/>
   // <index value="19"/>
 
-  indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
-             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21, 23, 21, 22, 23};
-  vertices.clear();
-  vertices.push_back(make_vertex({423.0f, 330.0f, 247.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({265.0f, 330.0f, 296.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({314.0f, 330.0f, 456.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({472.0f, 330.0f, 406.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({423.0f, 30.0f, 247.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({423.0f, 330.0f, 247.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({472.0f, 330.0f, 406.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({472.0f, 30.0f, 406.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({472.0f, 30.0f, 406.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({472.0f, 330.0f, 406.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({314.0f, 330.0f, 456.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({314.0f, 30.0f, 456.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({314.0f, 30.0f, 456.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({314.0f, 330.0f, 456.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({265.0f, 330.0f, 296.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({265.0f, 30.0f, 296.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({265.0f, 30.0f, 296.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({265.0f, 330.0f, 296.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({423.0f, 330.0f, 247.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({423.0f, 30.0f, 247.0f}, {0.0f, 1.0f}));
-  vertices.push_back(make_vertex({423.0f, 30.0f, 247.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({265.0f, 30.0f, 296.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({314.0f, 30.0f, 456.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({472.0f, 30.0f, 406.0f}, {0.0f, 1.0f}));
+  /*indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
+             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21,
+  23, 21, 22, 23}; vertices.clear(); vertices.push_back(make_vertex({423.0f,
+  330.0f, 247.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({265.0f,
+  330.0f, 296.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({314.0f,
+  330.0f, 456.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({472.0f,
+  330.0f, 406.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({423.0f, 0.0f,
+  247.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({423.0f, 330.0f,
+  247.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({472.0f, 330.0f,
+  406.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({472.0f, 0.0f,
+  406.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({472.0f, 0.0f,
+  406.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({472.0f, 330.0f,
+  406.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({314.0f, 330.0f,
+  456.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({314.0f, 0.0f,
+  456.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({314.0f, 0.0f,
+  456.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({314.0f, 330.0f,
+  456.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({265.0f, 330.0f,
+  296.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({265.0f, 0.0f,
+  296.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({265.0f, 0.0f,
+  296.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({265.0f, 330.0f,
+  296.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({423.0f, 330.0f,
+  247.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({423.0f, 0.0f,
+  247.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({423.0f, 0.0f,
+  247.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({265.0f, 0.0f,
+  296.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({314.0f, 0.0f,
+  456.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({472.0f, 0.0f,
+  406.0f}, {0.0f, 1.0f}));
 
   int tall_box_mesh_id =
       asset_manager->LoadMesh(Mesh(vertices, indices), "TallBoxMesh");
   Material tall_box_material;
   tall_box_material.base_color = {0.8f, 0.8f, 0.8f};
-  tall_box_material.volumetric_center = {360.0f, 180.0f, 350.0f};
   int tall_box_id = scene->CreateEntity();
   scene->SetEntityMesh(tall_box_id, tall_box_mesh_id);
-  scene->SetEntityMaterial(tall_box_id, tall_box_material);
+  scene->SetEntityMaterial(tall_box_id, tall_box_material);*/
 
-
-
-  /*Mesh test, testt;
+  Mesh test, testt;
   test.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
   test.ThisIsPointLight();
-  
+
   int test_mesh_id = asset_manager->LoadMesh(test, "Cube");
-  
+
   Material test_material;
   test_material.base_color = {0.0f, 0.0f, 0.8f};
   test_material.emission = {1.0f, 1.0f, 1.0f};
   test_material.emission_strength = 10.0f;
   test_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
-  test_material.center = {550.0f, 540.0f, 550.0f};
+  test_material.center = {60.0f, 105.0f, 80.0f};
   int test_id = scene->CreateEntity();
   scene->SetEntityMesh(test_id, test_mesh_id);
-  scene->SetEntityMaterial(test_id, test_material);*/
-  
-  /*testt.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  scene->SetEntityMaterial(test_id, test_material);
+
+  testt.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
   testt.ThisIsPointLight(glm::vec3{131.452f, -114.514f, -191.981f});
   int testt_mesh_id = asset_manager->LoadMesh(testt, "Cube");
   Material testt_material;
@@ -373,48 +362,29 @@ void LoadCornellBox(Scene *scene) {
   testt_material.emission = {1.0f, 1.0f, 1.0f};
   testt_material.emission_strength = 10.0f;
   testt_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
-  testt_material.center = {60.0f, 105.0f, 100.0f};  
+  testt_material.center = {60.0f, 105.0f, 100.0f};
   int testt_id = scene->CreateEntity();
   scene->SetEntityMesh(testt_id, testt_mesh_id);
-  scene->SetEntityMaterial(testt_id, testt_material);*/
+  scene->SetEntityMaterial(testt_id, testt_material);
 
-	// parallel light
-  Mesh para_light;
-  para_light.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
-  para_light.Shift(glm::vec3{-600.0f, -600.0f, -600.0f});
-  int para_light_mesh_id = asset_manager->LoadMesh(para_light, "Cube");
-  Material para_material;
-  para_material.base_color = {0.0f, 0.0f, 0.8f};
-  para_material.emission = {1.0f, 1.0f, 1.0f};
-  para_material.emission_strength = 10.0f;
-  para_material.type = MATERIAL_TYPE_PARALLELLIGHT;  // Point Light
-  para_material.center = {20.0f, 520.0f, 520.0f};
-  para_material.direction = {2.0f, -1.0f, -1.0f};
-  para_material.radius = 5.0f;
-  int para_light_id = scene->CreateEntity();
-  scene->SetEntityMesh(para_light_id, para_light_mesh_id);
-  scene->SetEntityMaterial(para_light_id, para_material);
-
-  Texture iiis_texture;
-  iiis_texture.LoadFromFile(
-      FindAssetsFile("texture/IIIS.png"),
-      LDRColorSpace::UNORM);
-  auto iiis_texture_id =
-      asset_manager->LoadTexture(iiis_texture, "IIISTexture");
-  scene->SetEntityAlbedoTexture(short_box_id, iiis_texture_id);
-  //scene->SetEntityAlbedoDetailTexture(back_wall_id, iiis_texture_id);
+  Texture milkdragon_texture;
+  milkdragon_texture.LoadFromFile(FindAssetsFile("texture/IIIS.png"),
+                                  LDRColorSpace::UNORM);
+  auto milkdragon_texture_id =
+      asset_manager->LoadTexture(milkdragon_texture, "IIISTexture");
+  scene->SetEntityAlbedoTexture(back_wall_id, milkdragon_texture_id);
+  // scene->SetEntityAlbedoDetailTexture(back_wall_id, milkdragon_texture_id);
 
   Texture thu_texture;
   thu_texture.LoadFromFile(FindAssetsFile("texture/THU.png"),
-                                  LDRColorSpace::UNORM);
-  auto thu_texture_id =
-      asset_manager->LoadTexture(thu_texture, "thuTexture");
+                           LDRColorSpace::UNORM);
+  auto thu_texture_id = asset_manager->LoadTexture(thu_texture, "thuTexture");
   scene->SetEntityAlbedoTexture(back_wall_id, thu_texture_id);
-  //scene->SetEntityAlbedoDetailTexture(back_wall_id, thu_texture_id);
+  // scene->SetEntityAlbedoDetailTexture(back_wall_id, thu_texture_id);
 
   Texture normal_texture;
   normal_texture.LoadFromFile(FindAssetsFile("texture/normal.png"),
-                                  LDRColorSpace::UNORM);
+                              LDRColorSpace::UNORM);
   auto normal_texture_id =
       asset_manager->LoadTexture(normal_texture, "NormalTexture");
   /*scene->SetEntityNormalTexture(back_wall_id, normal_texture_id);*/
