@@ -1145,7 +1145,7 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
 
     // Wave Effect
     vec2 sampled_phase_ray = vec2(1.0, 0.0), accumulated_phase_ray = vec2(0.0, 0.0);
-    float total_time = 0.0, this_time = 0.0;
+    float indirect_light_time = 0.0, direct_light_time = 0.0;
     sampled_phase = vec2(1.0, 0.0);
 
     // Record for variable needed in the next iteration
@@ -1163,12 +1163,11 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
             break;
 
         // Direct lighting
-        this_time = 0.0;
+        direct_light_time = 0.0;
         if (depth != 0 && scene_settings.enable_direct_lighting && last_type != 2){
             float time;
             color_direct = EvaluateDirectLight(last_hit_record, origin, last_material, last_direction, last_wm, P_RR, last_type, color_direct_pdf, last_trans, time);
-            this_time = time;
-            //this_time = 0.0;
+            direct_light_time = time;
         }
         else { // No direct light is computed
             color_direct = vec3(0.0);
@@ -1190,10 +1189,10 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
         // Wave Effect
         if (depth != 0){
             if (last_trans) {
-                total_time += ray_payload.t * last_material.ior;
+                indirect_light_time += ray_payload.t * last_material.ior;
                 not_half_loss += 1;
             }
-            else total_time += ray_payload.t;
+            else indirect_light_time += ray_payload.t;
         }
 
         // enable volumetric, and the ray will enter a volumetric object
@@ -1223,7 +1222,7 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
                 }
                 else {
                     if (scene_settings.enable_wave_effect) {
-                        sampled_phase_ray = Time2Vec2(total_time + this_time, depth+1-not_half_loss);
+                        sampled_phase_ray = Time2Vec2(indirect_light_time + direct_light_time, depth+1-not_half_loss);
                         
                         vec3 cos_result = accumulated_color * GetCos(accumulated_phase_ray)
                                                   + accumulated_coef * color_direct * GetCos(sampled_phase_ray);
@@ -1379,7 +1378,7 @@ vec3 GetVelocity(vec3 origin, vec3 direction, out bool env, out vec3 hitpoint) {
 
     // hit environment
     if (ray_payload.t == -1.0) {
-        env = true;
+        env = true; 
         return vec3(0.0);
     }
     // hit object
