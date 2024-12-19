@@ -8,7 +8,7 @@ struct SceneSettings {
   glm::mat4 inv_projection;  // inverse_projection
   glm::mat4 view;            // world_to_camera
   glm::mat4 inv_view;        // camera_to_world
-  float gamma{5.0f};
+  float gamma{2.2f};
   float exposure{1.0f};
   float persistence{1.0f};
   uint32_t accumulated_sample{0};
