@@ -752,54 +752,57 @@ vec3 ChromaticNormalize(vec3 f) {
 
 // compute the transmittance along the path
 // "dist" is the distance of the path
+// time is the light distance for interference
 vec3 ComputeTransmittance(vec3 origin, vec3 direction, float dist, out float time) {
     vec3 trans = vec3(1.0f);
-    bool outside = true;
-
-    Material last_material;
-    last_material.transmission = 0.0;
+    int state = 0; // 0 for outside, 1 for volumetric, 2 for glass
     time = 0.0;
-    vec3 accumulated_trans = vec3(1.0);
 
     while (true) {
         TraceRay(origin, direction);
         HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
 
-        if (last_material.transmission > 1e-4){ // BSDF transmission
-            time += last_material.ior * ray_payload.t;
-        }
-        else {
-            time += ray_payload.t;
-        }
-
-        if (outside) {
+        if (state == 0) {
+            time += min(ray_payload.t, dist);
             // arrive at the target object
             if (ray_payload.t > dist - 1e-3)
-                return trans * accumulated_trans;
-            // blocked
-            if (material.type != MATERIAL_TYPE_VOLUMETRIC){
-                if (material.type == MATERIAL_TYPE_PRINCIPLED && material.transmission > 0.0)
-                    accumulated_trans *= vec3(material.transmission * material.base_color);
-                else return vec3(0.0);
-            }
-                
-            // encounter volumetric object, enter into it
-            outside = false;
+                return trans;
+            
+            // enter volumetric object
+            if (material.type == MATERIAL_TYPE_VOLUMETRIC) {
+                state = 1;
             origin = hit_record.position;
-            dist -= ray_payload.t;  // update distance
-            if (last_material.transmission > 0){// Coming out
-                last_material = material;
-                last_material.transmission=0.0;
+                dist -= ray_payload.t;
+                continue;
             }
-            else{
-                last_material = material;
+            // enter glass
+            else if (material.type == MATERIAL_TYPE_PRINCIPLED && material.transmission > 0.0) {
+                state = 2;
+                origin = hit_record.position;
+                dist -= ray_payload.t;
+                continue;
+            // blocked
+            } else {
+                time = 0.0;
+                return vec3(0.0);
             }
+        } 
+        else if (state == 1) {
+            trans *= vec3(material.transmission * material.base_color);
+            time += min(ray_payload.t, dist);
+            if (ray_payload.t > dist - 1e-3)
+                return trans;
+
+            state = 0;
+            origin = hit_record.position;
+            dist -= ray_payload.t;
             continue;
         }
 
         // accumulate transmittance in the volumetric object
         float tar_t = min(ray_payload.t, dist);  // maximal distance to transmit
+        time += tar_t;
         bool tar_inside = (ray_payload.t > dist - 1e-3);  // whether the target is in the object
         // while loop for sampling t in the volumetric object
         while (true) {
@@ -815,7 +818,7 @@ vec3 ComputeTransmittance(vec3 origin, vec3 direction, float dist, out float tim
                 if (tar_inside)  // arrive at the target
                     return trans;
                 // leave the object
-                outside = true;
+                state = 0;
                 origin = hit_record.position;
                 dist -= tar_t;  // update distance
                 break;
@@ -831,7 +834,7 @@ vec3 ComputeTransmittance(vec3 origin, vec3 direction, float dist, out float tim
                 if (tar_inside)  // arrive at the target
                     return trans;
                 // leave the object
-                outside = true;
+                state = 0;
                 origin = hit_record.position;
                 dist -= tar_t;  // update distance
                 break;
@@ -956,7 +959,6 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
             float light_distance = length(light_direction);
             light_direction = normalize(light_direction);
             color_direct_direction = normalize(sampled_point - origin);
-            time = light_distance;
 
             // get the transmittance along the path
             vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance, time);
@@ -1035,7 +1037,6 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
         float light_distance = length(light_direction);
         light_direction = normalize(light_direction);
         color_direct_direction = normalize(sampled_point - origin);
-        time = light_distance;
 
         // get the transmittance along the path
         vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance, time);
