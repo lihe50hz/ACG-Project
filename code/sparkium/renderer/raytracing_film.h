@@ -6,6 +6,7 @@ namespace sparkium {
 struct RayTracingFilm {
   std::unique_ptr<vulkan::Image> accumulated_radiance_image{};
   std::unique_ptr<vulkan::Image> accumulated_weight_image{};
+  std::unique_ptr<vulkan::Image> accumulated_phase_gb_image{};
   std::unique_ptr<vulkan::Image> raw_result_image{};
   std::unique_ptr<vulkan::Image> result_image{};
   std::unique_ptr<vulkan::DescriptorPool> descriptor_pool{};
