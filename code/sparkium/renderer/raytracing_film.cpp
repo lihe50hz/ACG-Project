@@ -8,12 +8,14 @@ void RayTracingFilm::Resize(uint32_t width, uint32_t height) {
   VkExtent2D extent{width, height};
   result_image->Resize(extent);
   accumulated_weight_image->Resize(extent);
+  accumulated_phase_gb_image->Resize(extent);
   accumulated_radiance_image->Resize(extent);
   raw_result_image->Resize(extent);
   descriptor_set->BindStorageImage(0, result_image.get());
   descriptor_set->BindStorageImage(1, accumulated_radiance_image.get());
   descriptor_set->BindStorageImage(2, accumulated_weight_image.get());
-  descriptor_set->BindStorageImage(3, raw_result_image.get());
+  descriptor_set->BindStorageImage(3, accumulated_phase_gb_image.get());
+  descriptor_set->BindStorageImage(4, raw_result_image.get());
 
   renderer->Core()->SingleTimeCommands([&](VkCommandBuffer cmd_buffer) {
     vulkan::TransitImageLayout(
@@ -29,6 +31,12 @@ void RayTracingFilm::Resize(uint32_t width, uint32_t height) {
         VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
     vulkan::TransitImageLayout(
         cmd_buffer, accumulated_weight_image->Handle(),
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, VK_ACCESS_MEMORY_READ_BIT,
+        VK_ACCESS_SHADER_WRITE_BIT, VK_IMAGE_ASPECT_COLOR_BIT);
+    vulkan::TransitImageLayout(
+        cmd_buffer, accumulated_phase_gb_image->Handle(),
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
         VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, VK_ACCESS_MEMORY_READ_BIT,
@@ -56,6 +64,9 @@ void RayTracingFilm::ClearAccumulationBuffer() {
                          VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1,
                          &subresource_range);
     vkCmdClearColorImage(cmd_buffer, accumulated_weight_image->Handle(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1,
+                         &subresource_range);
+    vkCmdClearColorImage(cmd_buffer, accumulated_phase_gb_image->Handle(),
                          VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1,
                          &subresource_range);
   });

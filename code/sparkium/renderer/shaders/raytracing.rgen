@@ -66,7 +66,9 @@ layout(set = 4,
 
 layout(set = 4, binding = 2, rgba32f) uniform image2D accumulated_weight_image;
 
-layout(set = 4, binding = 3, rgba32f) uniform image2D raw_result_image;
+layout(set = 4, binding = 3, rgba32f) uniform image2D accumulated_phase_gb_image;
+
+layout(set = 4, binding = 4, rgba32f) uniform image2D raw_result_image;
 
 layout(location = 0) rayPayloadEXT RayPayload ray_payload;
 
@@ -87,10 +89,10 @@ float GetSin(vec2 phase){
     return normalized_phase.y;
 }
 
-vec2 Time2Vec2(float time, uint depth){
-    float angular_velocity = 1.0;
-	return vec2(cos(time * angular_velocity + depth * PI)
-                , sin(time * angular_velocity + depth * PI));
+vec2 Time2Vec2(float time, uint depth, uint chan){
+    vec3 angular_velocity = vec3(0.805, 1.0, 1.212); // relative angular velocity for 3 color light
+	return vec2(cos(time * angular_velocity[chan] + depth * PI),
+                sin(time * angular_velocity[chan] + depth * PI));
 }
 
 float CosTheta(vec3 w){
@@ -577,6 +579,11 @@ vec3 SampleDisneyClearcoat(Material material, vec3 wo, out float forwardPdf){
     return wi;
 }
 
+float ComputeHG(float g, float cos_theta) {
+    float denom = 1 + g * g + 2 * g * cos_theta;
+    return 1.0f / (PI * 4) * (1 - g * g) / (denom * sqrt(denom));
+}
+
 // For overllall Sampling and Evaluation
 uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, out vec3 wi, out float pdf, out bool trans) {
     uint type=0;
@@ -705,7 +712,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
             }
             break;
         case MATERIAL_TYPE_VOLUMETRIC:
-            return vec3(1.0 / (4.0 * PI * pdf));
+            return vec3(ComputeHG(material.g, dot(wi, wo)) / pdf);
             break;
         case MATERIAL_TYPE_POINTLIGHT:
             return vec3(1.0);
@@ -747,54 +754,57 @@ vec3 ChromaticNormalize(vec3 f) {
 
 // compute the transmittance along the path
 // "dist" is the distance of the path
+// time is the light distance for interference
 vec3 ComputeTransmittance(vec3 origin, vec3 direction, float dist, out float time) {
     vec3 trans = vec3(1.0f);
-    bool outside = true;
-
-    Material last_material;
-    last_material.transmission = 0.0;
+    int state = 0; // 0 for outside, 1 for volumetric, 2 for glass
     time = 0.0;
-    vec3 accumulated_trans = vec3(1.0);
 
     while (true) {
         TraceRay(origin, direction);
         HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
 
-        if (last_material.transmission > 1e-4){ // BSDF transmission
-            time += last_material.ior * ray_payload.t;
-        }
-        else {
-            time += ray_payload.t;
-        }
-
-        if (outside) {
+        if (state == 0) {
+            time += min(ray_payload.t, dist);
             // arrive at the target object
             if (ray_payload.t > dist - 1e-3)
-                return trans * accumulated_trans;
+                return trans;
+            
+            // enter volumetric object
+            if (material.type == MATERIAL_TYPE_VOLUMETRIC) {
+                state = 1;
+                origin = hit_record.position;
+                dist -= ray_payload.t;
+                continue;
+            }
+            // enter glass
+            else if (material.type == MATERIAL_TYPE_PRINCIPLED && material.transmission > 0.0) {
+                state = 2;
+                origin = hit_record.position;
+                dist -= ray_payload.t;
+                continue;
             // blocked
-            if (material.type != MATERIAL_TYPE_VOLUMETRIC){
-                if (material.type == MATERIAL_TYPE_PRINCIPLED && material.transmission > 0.0)
-                    accumulated_trans *= vec3(material.transmission * material.base_color);
-                else return vec3(0.0);
+            } else {
+                time = 0.0;
+                return vec3(0.0);
             }
-                
-            // encounter volumetric object, enter into it
-            outside = false;
+        } 
+        else if (state == 1) {
+            trans *= vec3(material.transmission * material.base_color);
+            time += min(ray_payload.t, dist);
+            if (ray_payload.t > dist - 1e-3)
+                return trans;
+
+            state = 0;
             origin = hit_record.position;
-            dist -= ray_payload.t;  // update distance
-            if (last_material.transmission > 0){// Coming out
-                last_material = material;
-                last_material.transmission=0.0;
-            }
-            else{
-                last_material = material;
-            }
+            dist -= ray_payload.t;
             continue;
         }
 
         // accumulate transmittance in the volumetric object
         float tar_t = min(ray_payload.t, dist);  // maximal distance to transmit
+        time += tar_t;
         bool tar_inside = (ray_payload.t > dist - 1e-3);  // whether the target is in the object
         // while loop for sampling t in the volumetric object
         while (true) {
@@ -810,7 +820,7 @@ vec3 ComputeTransmittance(vec3 origin, vec3 direction, float dist, out float tim
                 if (tar_inside)  // arrive at the target
                     return trans;
                 // leave the object
-                outside = true;
+                state = 0;
                 origin = hit_record.position;
                 dist -= tar_t;  // update distance
                 break;
@@ -826,7 +836,7 @@ vec3 ComputeTransmittance(vec3 origin, vec3 direction, float dist, out float tim
                 if (tar_inside)  // arrive at the target
                     return trans;
                 // leave the object
-                outside = true;
+                state = 0;
                 origin = hit_record.position;
                 dist -= tar_t;  // update distance
                 break;
@@ -951,7 +961,6 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
             float light_distance = length(light_direction);
             light_direction = normalize(light_direction);
             color_direct_direction = normalize(sampled_point - origin);
-            time = light_distance;
 
             // get the transmittance along the path
             vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance, time);
@@ -1030,7 +1039,6 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
         float light_distance = length(light_direction);
         light_direction = normalize(light_direction);
         color_direct_direction = normalize(sampled_point - origin);
-        time = light_distance;
 
         // get the transmittance along the path
         vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance, time);
@@ -1125,9 +1133,8 @@ vec2 SampleCircle(float radius) {
     return vec2(r * cos(theta), r * sin(theta));
 }
 
-vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
-    
-    
+// phase r,g,b is the vector (A cos theta, A sin theta)
+vec3 SampleRay(vec3 origin, vec3 direction, out vec2 phase_r, out vec2 phase_g, out vec2 phase_b) {
     // Overall Coefficient
     float P_RR = 0.9;
     vec3 accumulated_color = vec3(0.0); 
@@ -1144,9 +1151,10 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
     vec3 color_indirect;
 
     // Wave Effect
-    vec2 sampled_phase_ray = vec2(1.0, 0.0), accumulated_phase_ray = vec2(0.0, 0.0);
     float indirect_light_time = 0.0, direct_light_time = 0.0;
-    sampled_phase = vec2(1.0, 0.0);
+    phase_r = vec2(0.0, 0.0);
+    phase_g = vec2(0.0, 0.0);
+    phase_b = vec2(0.0, 0.0);
 
     // Record for variable needed in the next iteration
     HitRecord last_hit_record;
@@ -1222,14 +1230,12 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
                 }
                 else {
                     if (scene_settings.enable_wave_effect) {
-                        sampled_phase_ray = Time2Vec2(indirect_light_time + direct_light_time, depth+1-not_half_loss);
-                        
-                        vec3 cos_result = accumulated_color * GetCos(accumulated_phase_ray)
-                                                  + accumulated_coef * color_direct * GetCos(sampled_phase_ray);
-                        vec3 sin_result = accumulated_color * GetSin(accumulated_phase_ray)
-								                  + accumulated_coef * color_direct * GetSin(sampled_phase_ray);
-                        accumulated_color = sqrt(cos_result * cos_result + sin_result * sin_result);
-                        accumulated_phase_ray += sampled_phase_ray * length(accumulated_coef * color_direct);
+                        float arg_1 = indirect_light_time + direct_light_time;
+                        uint arg_2 = depth + 1 - not_half_loss;
+                        phase_r += accumulated_coef.r * color_direct.r * Time2Vec2(arg_1, arg_2, 0);
+                        phase_g += accumulated_coef.g * color_direct.g * Time2Vec2(arg_1, arg_2, 1);
+                        phase_b += accumulated_coef.b * color_direct.b * Time2Vec2(arg_1, arg_2, 2);
+                        accumulated_color = vec3(length(phase_r), length(phase_g), length(phase_b));
                     }
                     else {
                         accumulated_color += accumulated_coef * color_direct;// Otherwise, only direct light
@@ -1365,7 +1371,6 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 sampled_phase) {
         }
     }
     
-    sampled_phase = accumulated_phase_ray;
     return accumulated_color;
 }
 
@@ -1444,45 +1449,65 @@ void main() {
     float tmax = 10000.0;
 
     ray_payload.t = -1.0;
-    vec2 sampled_phase = vec2(1.0, 0.0);
-    vec3 sampled_result = SampleRay(origin, direction, sampled_phase);
+    vec2 sample_phase_r = vec2(0.0, 0.0);
+    vec2 sample_phase_g = vec2(0.0, 0.0);
+    vec2 sample_phase_b = vec2(0.0, 0.0);
+    vec3 sampled_result = SampleRay(origin, direction, sample_phase_r, sample_phase_g, sample_phase_b);
 
     sampled_result = clamp(sampled_result, -scene_settings.clamp_value,
                            scene_settings.clamp_value);
 
     vec4 accumulated_radiance = vec4(0.0);
-    vec4 accumulated_weight_image_temp;
-    float accumulated_weight = 0.0f;
-    vec2 accumulated_phase = vec2(0.0);
+    vec4 accumulated_weight_image_temp = vec4(0.0);
+    vec4 accumulated_phase_gb = vec4(0.0);
+
     accumulated_radiance =
         imageLoad(accumulated_radiance_image, ivec2(gl_LaunchIDEXT.xy));
     accumulated_weight_image_temp =
         imageLoad(accumulated_weight_image, ivec2(gl_LaunchIDEXT.xy));
+    accumulated_phase_gb = 
+        imageLoad(accumulated_phase_gb_image, ivec2(gl_LaunchIDEXT.xy));
+
+    float accumulated_weight = 0.0f;
+    vec2 acc_phase_r = vec2(0.0);
+    vec2 acc_phase_g = vec2(0.0);
+    vec2 acc_phase_b = vec2(0.0);
+    
     accumulated_weight = accumulated_weight_image_temp.r;
-    accumulated_phase.x = accumulated_weight_image_temp.g;
-    accumulated_phase.y = accumulated_weight_image_temp.b;
+    acc_phase_r.x = accumulated_weight_image_temp.g;
+    acc_phase_r.y = accumulated_weight_image_temp.b;
+    acc_phase_g.x = accumulated_phase_gb.r;
+    acc_phase_g.y = accumulated_phase_gb.g;
+    acc_phase_b.x = accumulated_phase_gb.b;
+    acc_phase_b.y = accumulated_phase_gb.a;
 
     accumulated_radiance *= scene_settings.persistence;
     accumulated_weight *= scene_settings.persistence;
-    accumulated_phase *= scene_settings.persistence;
+    acc_phase_r *= scene_settings.persistence;
+    acc_phase_g *= scene_settings.persistence;
+    acc_phase_b *= scene_settings.persistence;
 
     if (isnan(accumulated_weight) || isnan(accumulated_radiance.r) ||
         isnan(accumulated_radiance.g) || isnan(accumulated_radiance.b) ||
-        isnan(accumulated_radiance.a) || isnan(accumulated_phase.x) || isnan(accumulated_phase.y)) {
-      accumulated_weight = 0.0;
-      accumulated_phase = vec2(0.0);
+        isnan(accumulated_radiance.a) || isnan(acc_phase_r.x) || isnan(acc_phase_r.y) ||
+        isnan(acc_phase_g.x) || isnan(acc_phase_g.y) || isnan(acc_phase_b.x) || isnan(acc_phase_b.y)) {
       accumulated_radiance = vec4(0.0);
+      accumulated_weight = 0.0;
+      acc_phase_r = vec2(0.0);
+      acc_phase_g = vec2(0.0);
+      acc_phase_b = vec2(0.0);
     }
     if (scene_settings.enable_wave_effect) {
-        vec3 cos_result = accumulated_radiance.rgb * GetCos(accumulated_phase)
-                                  + sampled_result * GetCos(sampled_phase);
-        vec3 sin_result = accumulated_radiance.rgb * GetSin(accumulated_phase)
-								  + sampled_result * GetSin(sampled_phase);
-        accumulated_radiance = vec4(sqrt(cos_result * cos_result + sin_result * sin_result), 1.0);
+        acc_phase_r.x += sampled_result.r * GetCos(sample_phase_r);
+        acc_phase_r.y += sampled_result.r * GetSin(sample_phase_r);
+        acc_phase_g.x += sampled_result.g * GetCos(sample_phase_g);
+        acc_phase_g.y += sampled_result.g * GetSin(sample_phase_g);
+        acc_phase_b.x += sampled_result.b * GetCos(sample_phase_b);
+        acc_phase_b.y += sampled_result.b * GetSin(sample_phase_b);
+        accumulated_radiance = vec4(length(acc_phase_r), length(acc_phase_g), length(acc_phase_b), 1.0);
     }
     else accumulated_radiance += vec4(sampled_result, 1.0);
-    accumulated_phase += sampled_phase * length(sampled_result);
-    accumulated_weight += 1.0;
+    accumulated_weight += 1.0; 
 
     vec4 raw_result = accumulated_radiance / accumulated_weight;
 
@@ -1491,14 +1516,14 @@ void main() {
     vec4 resolved_result = pow(scene_settings.exposure * raw_result,
                                vec4(1.0 / scene_settings.gamma));
 
-    
-
     imageStore(result_image, ivec2(gl_LaunchIDEXT.xy),
                vec4(resolved_result.rgb, 1.0));
     imageStore(accumulated_radiance_image, ivec2(gl_LaunchIDEXT.xy),
                accumulated_radiance);
     imageStore(accumulated_weight_image, ivec2(gl_LaunchIDEXT.xy),
-               vec4(accumulated_weight, accumulated_phase.x, accumulated_phase.y, 1.0f));
+               vec4(accumulated_weight, acc_phase_r.x, acc_phase_r.y, 1.0f));
+    imageStore(accumulated_phase_gb_image, ivec2(gl_LaunchIDEXT.xy),
+               vec4(acc_phase_g.x, acc_phase_g.y, acc_phase_b.x, acc_phase_b.y));
     imageStore(raw_result_image, ivec2(gl_LaunchIDEXT.xy), raw_result);
   }
 }
