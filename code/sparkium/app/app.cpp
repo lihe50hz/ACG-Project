@@ -547,6 +547,8 @@ ImVec2 Application::ImGuiSettingsWindow() {
           "Base Color Texture", &metadata.albedo_texture_id);
       render_settings_changed_ |= asset_manager_->ComboForTextureSelection(
           "Detail Texture", &metadata.albedo_detail_texture_id);
+      render_settings_changed_ |= asset_manager_->ComboForTextureSelection(
+          "Normal Texture", &metadata.normal_texture_id);
       render_settings_changed_ |= ImGui::SliderFloat2(
           "Detail Scale", &metadata.detail_scale_offset.x, 0.0001f, 10000.0f,
           "%.4f", ImGuiSliderFlags_Logarithmic);

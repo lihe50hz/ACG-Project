@@ -12,4 +12,6 @@ void LoadCornellBox(Scene *scene);
 
 void LoadIslandScene(Scene *scene);
 
+void LoadLivingScene(Scene *scene);
+
 }  // namespace sparkium

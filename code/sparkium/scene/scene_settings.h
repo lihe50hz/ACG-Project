@@ -14,7 +14,7 @@ struct SceneSettings {
   uint32_t accumulated_sample{0};
   uint32_t num_sample{1};
   uint32_t num_bounces{16};
-  float clamp_value{20.0f};
+  float clamp_value{3.0f};
   float total_emission_energy{0.0f};
   uint32_t num_entity{0};
   uint32_t enable_direct_lighting{1};
