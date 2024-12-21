@@ -8,8 +8,8 @@ namespace sparkium {
 std::vector<std::pair<std::string, std::function<void(Scene *scene)>>>
 BuiltInSceneList() {
   return {
+      {"Living Room Scene", LoadLivingScene},
       {"Cornell Box", LoadCornellBox},
-      {"Island Scene", LoadIslandScene},
   };
 }
 
@@ -41,7 +41,7 @@ void LoadCornellBox(Scene *scene) {
   Material light_material;
   light_material.base_color = {0.0f, 0.0f, 0.0f};
   light_material.emission = {1.0f, 1.0f, 1.0f};
-  light_material.emission_strength = 0.0f;
+  light_material.emission_strength = 100.0f;
   int light_id = scene->CreateEntity();
   scene->SetEntityMesh(light_id, light_mesh_id);
   scene->SetEntityMaterial(light_id, light_material);
@@ -208,7 +208,7 @@ void LoadCornellBox(Scene *scene) {
   scene->SetEntityMaterial(short_box_id, short_box_material);*/
 
   // box 2
-  indices = {0,  1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,
+  /*indices = {0,  1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,
              8,  9,  11, 9,  10, 11, 12, 13, 15, 13, 14, 15,
              16, 17, 19, 17, 18, 19, 20, 21, 23, 21, 22, 23};
   vertices.clear();
@@ -242,7 +242,7 @@ void LoadCornellBox(Scene *scene) {
   short_box2_material.base_color = {0.8f, 0.8f, 0.8f};
   int short_box2_id = scene->CreateEntity();
   scene->SetEntityMesh(short_box2_id, short_box2_mesh_id);
-  scene->SetEntityMaterial(short_box2_id, short_box2_material);
+  scene->SetEntityMaterial(short_box2_id, short_box2_material);*/
 
   // tall_box
   // <vertex position="423.0 330.0 247.0" tex_coord="0 0"/>
@@ -337,35 +337,100 @@ void LoadCornellBox(Scene *scene) {
   int tall_box_id = scene->CreateEntity();
   scene->SetEntityMesh(tall_box_id, tall_box_mesh_id);
   scene->SetEntityMaterial(tall_box_id, tall_box_material);*/
+  /*
+  Mesh longma;
+  longma.LoadObjFile(FindAssetsFile("mesh/longma.obj"));
+  int longma_mesh_id = asset_manager->LoadMesh(longma, "LongMa");
 
-  Mesh test, testt;
-  test.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
-  test.ThisIsPointLight();
+  Material longma_material;
+  
+  longma_material.base_color = {1.0f, 1.0f, 1.0f};
+  int longma_id = scene->CreateEntity();
+  scene->SetEntityMesh(longma_id, longma_mesh_id);
+  scene->SetEntityMaterial(longma_id, longma_material);
+  Texture longma_texture;
+  longma_texture.LoadFromFile(FindAssetsFile("texture/living/LMspirit.jpg"),
+                                  LDRColorSpace::UNORM);
+  auto longma_texture_id =
+      asset_manager->LoadTexture(longma_texture, "LMTexture");
+  scene->SetEntityAlbedoTexture(longma_id, longma_texture_id);
 
-  int test_mesh_id = asset_manager->LoadMesh(test, "Cube");
+  Mesh longma2;
+  longma2.LoadObjFile(FindAssetsFile("mesh/longma2.obj"));
+  int longma2_mesh_id = asset_manager->LoadMesh(longma2, "LongMa2");
 
-  Material test_material;
-  test_material.base_color = {0.0f, 0.0f, 0.8f};
-  test_material.emission = {1.0f, 1.0f, 1.0f};
-  test_material.emission_strength = 10.0f;
-  test_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
-  test_material.center = {60.0f, 105.0f, 80.0f};
-  int test_id = scene->CreateEntity();
-  scene->SetEntityMesh(test_id, test_mesh_id);
-  scene->SetEntityMaterial(test_id, test_material);
+  Material longma2_material;
 
-  testt.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
-  testt.ThisIsPointLight(glm::vec3{131.452f, -114.514f, -191.981f});
-  int testt_mesh_id = asset_manager->LoadMesh(testt, "Cube");
-  Material testt_material;
-  testt_material.base_color = {0.0f, 0.0f, 0.8f};
-  testt_material.emission = {1.0f, 1.0f, 1.0f};
-  testt_material.emission_strength = 10.0f;
-  testt_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
-  testt_material.center = {60.0f, 105.0f, 100.0f};
-  int testt_id = scene->CreateEntity();
-  scene->SetEntityMesh(testt_id, testt_mesh_id);
-  scene->SetEntityMaterial(testt_id, testt_material);
+  longma2_material.base_color = {1.0f, 1.0f, 1.0f};
+  int longma2_id = scene->CreateEntity();
+  scene->SetEntityMesh(longma2_id, longma2_mesh_id);
+  scene->SetEntityMaterial(longma2_id, longma2_material);
+
+  Mesh longma3;
+  longma3.LoadObjFile(FindAssetsFile("mesh/longma3.obj"));
+  int longma3_mesh_id = asset_manager->LoadMesh(longma3, "LongMa3");
+
+  Material longma3_material;
+
+  longma3_material.base_color = {1.0f, 1.0f, 1.0f};
+  int longma3_id = scene->CreateEntity();
+  scene->SetEntityMesh(longma3_id, longma3_mesh_id);
+  scene->SetEntityMaterial(longma3_id, longma3_material);
+  Texture longma3_texture;
+  longma3_texture.LoadFromFile(FindAssetsFile("texture/living/Wood09_diffuse_xtm.jpg"),
+                              LDRColorSpace::UNORM);
+  auto longma3_texture_id =
+      asset_manager->LoadTexture(longma3_texture, "LMTexture3");
+  scene->SetEntityAlbedoTexture(longma3_id, longma3_texture_id);
+
+  scene->SetEntityTransform(
+      longma_id,
+      glm::translate(glm::mat4{1.0f},
+                     glm::vec3{0.0f, 0.0f, 400.0f}) *    // Z方向平移+400
+          glm::scale(glm::mat4{1.0f}, glm::vec3{40.0f})  // 放大40倍
+  );
+  scene->SetEntityTransform(
+      longma2_id,
+      glm::translate(glm::mat4{1.0f},
+                     glm::vec3{0.0f, 0.0f, 400.0f}) *    // Z方向平移+400
+          glm::scale(glm::mat4{1.0f}, glm::vec3{40.0f})  // 放大40倍
+  );
+  scene->SetEntityTransform(
+      longma3_id,
+      glm::translate(glm::mat4{1.0f},
+                     glm::vec3{0.0f, 0.0f, 400.0f}) *    // Z方向平移+400
+          glm::scale(glm::mat4{1.0f}, glm::vec3{40.0f})  // 放大40倍
+  );
+
+  */
+  //Mesh test, testt;
+  //test.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  //test.ThisIsPointLight();
+  
+  //int test_mesh_id = asset_manager->LoadMesh(test, "Cube");
+
+  //Material test_material;
+  //test_material.base_color = {0.0f, 0.0f, 0.8f};
+  //test_material.emission = {1.0f, 1.0f, 1.0f};
+  //test_material.emission_strength = 10.0f;
+  //test_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
+  //test_material.center = {60.0f, 105.0f, 80.0f};
+  //int test_id = scene->CreateEntity();
+  //scene->SetEntityMesh(test_id, test_mesh_id);
+  //scene->SetEntityMaterial(test_id, test_material);
+
+  //testt.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  //testt.ThisIsPointLight(glm::vec3{131.452f, -114.514f, -191.981f});
+  //int testt_mesh_id = asset_manager->LoadMesh(testt, "Cube");
+  //Material testt_material;
+  //testt_material.base_color = {0.0f, 0.0f, 0.8f};
+  //testt_material.emission = {1.0f, 1.0f, 1.0f};
+  //testt_material.emission_strength = 10.0f;
+  //testt_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
+  //testt_material.center = {60.0f, 105.0f, 100.0f};
+  //int testt_id = scene->CreateEntity();
+  //scene->SetEntityMesh(testt_id, testt_mesh_id);
+  //scene->SetEntityMaterial(testt_id, testt_material);
 
   Texture milkdragon_texture;
   milkdragon_texture.LoadFromFile(FindAssetsFile("texture/IIIS.png"),
@@ -376,7 +441,7 @@ void LoadCornellBox(Scene *scene) {
   // scene->SetEntityAlbedoDetailTexture(back_wall_id, milkdragon_texture_id);
 
   Texture thu_texture;
-  thu_texture.LoadFromFile(FindAssetsFile("texture/THU.png"),
+  thu_texture.LoadFromFile(FindAssetsFile("texture/living/white_tiles_2_diffuse.jpg"),
                            LDRColorSpace::UNORM);
   auto thu_texture_id = asset_manager->LoadTexture(thu_texture, "thuTexture");
   scene->SetEntityAlbedoTexture(back_wall_id, thu_texture_id);
@@ -519,6 +584,147 @@ void LoadIslandScene(Scene *scene) {
     detail_scale_offset.w = glm::mod(detail_scale_offset.w, 1.0f);
     scene->SetEntityDetailScaleOffset(water_entity_id, detail_scale_offset);
   });
+}
+
+void LoadLivingScene(Scene *scene) {
+  AssetManager *asset_manager = scene->Renderer()->AssetManager();
+  scene->Camera()->GetPosition() = glm::vec3{0.0f, 0.0f, 5.0f};
+
+  auto envmap = scene->GetEnvMap();
+
+  Texture envmap_texture;
+  envmap_texture.LoadFromFile(FindAssetsFile("texture/living/wooden_lounge_4k.hdr"),
+                              LDRColorSpace::UNORM);
+  auto envmap_id = asset_manager->LoadTexture(envmap_texture, "Envmap");
+  envmap->SetEnvmapTexture(envmap_id);
+  scene->SetEnvmapSettings({0.0f, 1.0f, uint32_t(envmap_id), 0});
+
+  // Floor
+  int floor_id = scene->CreateEntity();
+
+  Texture floor_texture;
+  floor_texture.LoadFromFile(
+      FindAssetsFile("texture/living/white_tiles_2_diffuse.png"),
+      LDRColorSpace::UNORM);
+  auto floor_texture_id =
+      asset_manager->LoadTexture(floor_texture, "FloorTexture");
+  scene->SetEntityAlbedoTexture(floor_id, floor_texture_id);
+  
+  Texture floor_normal_texture;
+  floor_normal_texture.LoadFromFile(FindAssetsFile("texture/living/white_tiles_2_normal.png"),
+                              LDRColorSpace::UNORM);
+  auto floor_normal_texture_id =
+      asset_manager->LoadTexture(floor_normal_texture, "FloorNormalTexture");
+  scene->SetEntityNormalTexture(floor_id, floor_normal_texture_id);
+
+  Mesh floor_mesh;
+  floor_mesh.LoadObjFile(FindAssetsFile("mesh/living/floor.obj"));
+  auto floor_mesh_id = asset_manager->LoadMesh(floor_mesh, "FloorMesh");
+  Material floor_material;
+  scene->SetEntityMesh(floor_id, floor_mesh_id);
+  scene->SetEntityMaterial(floor_id, floor_material);
+
+  // Left Wall
+  int leftwall_id = scene->CreateEntity();
+
+  Texture leftwall_texture;
+  leftwall_texture.LoadFromFile(
+      FindAssetsFile("texture/living/black_and_white_marble_23_37_diffuse.jpg"),
+      LDRColorSpace::UNORM);
+  auto leftwall_texture_id =
+      asset_manager->LoadTexture(leftwall_texture, "LeftWallTexture");
+  scene->SetEntityAlbedoTexture(leftwall_id, leftwall_texture_id);
+
+  Mesh leftwall_mesh;
+  leftwall_mesh.LoadObjFile(FindAssetsFile("mesh/living/leftwall.obj"));
+  auto leftwall_mesh_id = asset_manager->LoadMesh(leftwall_mesh, "LeftWallMesh");
+  Material leftwall_material;
+  scene->SetEntityMesh(leftwall_id, leftwall_mesh_id);
+  scene->SetEntityMaterial(leftwall_id, leftwall_material);
+
+  // Right Wall
+  int rightwall_id = scene->CreateEntity();
+
+  Mesh rightwall_mesh;
+  rightwall_mesh.LoadObjFile(FindAssetsFile("mesh/living/rightwall.obj"));
+  auto rightwall_mesh_id =
+      asset_manager->LoadMesh(rightwall_mesh, "RightWallMesh");
+  Material rightwall_material;
+  scene->SetEntityMesh(rightwall_id, rightwall_mesh_id);
+  scene->SetEntityMaterial(rightwall_id, rightwall_material);
+
+  // Back Wall
+  int backwall_id = scene->CreateEntity();
+
+  Mesh backwall_mesh;
+  backwall_mesh.LoadObjFile(FindAssetsFile("mesh/living/backwall.obj"));
+  auto backwall_mesh_id =
+      asset_manager->LoadMesh(backwall_mesh, "BackWallMesh");
+  Material backwall_material;
+  scene->SetEntityMesh(backwall_id, backwall_mesh_id);
+  scene->SetEntityMaterial(backwall_id, backwall_material);
+
+  // Ceiling
+  int ceiling_id = scene->CreateEntity();
+
+  Mesh ceiling_mesh;
+  ceiling_mesh.LoadObjFile(FindAssetsFile("mesh/living/ceiling.obj"));
+  auto ceiling_mesh_id =
+      asset_manager->LoadMesh(ceiling_mesh, "CeilingMesh");
+  Material ceiling_material;
+  scene->SetEntityMesh(ceiling_id, ceiling_mesh_id);
+  scene->SetEntityMaterial(ceiling_id, ceiling_material);
+
+  // Four Chairs
+  int fourchairs_id = scene->CreateEntity();
+
+  Mesh fourchairs_mesh;
+  fourchairs_mesh.LoadObjFile(FindAssetsFile("mesh/living/fourchairs.obj"));
+  auto fourchairs_mesh_id =
+      asset_manager->LoadMesh(fourchairs_mesh, "FourChairsMesh");
+  Material fourchairs_material;
+  scene->SetEntityMesh(fourchairs_id, fourchairs_mesh_id);
+  scene->SetEntityMaterial(fourchairs_id, fourchairs_material);
+
+  // Ceiling Light
+  int ceilinglight_id = scene->CreateEntity();
+
+  Mesh ceilinglight_mesh;
+  ceilinglight_mesh.LoadObjFile(FindAssetsFile("mesh/living/ceilinglight.obj"));
+  auto ceilinglight_mesh_id =
+      asset_manager->LoadMesh(ceilinglight_mesh, "CeilingLightMesh");
+  Material ceilinglight_material;
+  ceilinglight_material.base_color = {0.3f, 0.3f, 0.3f};
+  ceilinglight_material.emission = {1.0f, 1.0f, 1.0f};
+  ceilinglight_material.emission_strength = 100.0f;
+  scene->SetEntityMesh(ceilinglight_id, ceilinglight_mesh_id);
+  scene->SetEntityMaterial(ceilinglight_id, ceilinglight_material);
+
+  // Ceiling Light Edge
+  int ceilinglightedge_id = scene->CreateEntity();
+
+  Texture ceilinglightedge_texture;
+  ceilinglightedge_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood09_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto ceilinglightedge_texture_id = asset_manager->LoadTexture(
+      ceilinglightedge_texture, "CeilingLightEdgeTexture");
+  scene->SetEntityAlbedoTexture(ceilinglightedge_id,
+                                ceilinglightedge_texture_id);
+
+  Mesh ceilinglightedge_mesh;
+  ceilinglightedge_mesh.LoadObjFile(
+      FindAssetsFile("mesh/living/ceilinglightedge.obj"));
+  auto ceilinglightedge_mesh_id =
+      asset_manager->LoadMesh(ceilinglightedge_mesh, "CeilingLightEdgeMesh");
+  Material ceilinglightedge_material;
+  scene->SetEntityMesh(ceilinglightedge_id, ceilinglightedge_mesh_id);
+  scene->SetEntityMaterial(ceilinglightedge_id, ceilinglightedge_material);
+
+  scene->Camera()->SetFar(500.0f);
+  scene->Camera()->SetNear(0.05f);
+  scene->Camera()->SetPosition({0.0f, 0.1f, 1.2f});
+  scene->Camera()->SetCameraSpeed(10.0f);
 }
 
 }  // namespace sparkium
