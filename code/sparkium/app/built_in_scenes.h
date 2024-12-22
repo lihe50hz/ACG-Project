@@ -16,4 +16,8 @@ void LoadLivingScene(Scene *scene);
 
 void LoadInterference(Scene *scene);
 
+void LoadTyndall(Scene *scene);
+
+void LoadInterferenceBox(Scene *scene);
+
 }  // namespace sparkium
