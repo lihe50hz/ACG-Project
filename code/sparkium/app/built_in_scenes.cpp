@@ -8,9 +8,9 @@ namespace sparkium {
 std::vector<std::pair<std::string, std::function<void(Scene *scene)>>>
 BuiltInSceneList() {
   return {
+      {"Interference", LoadInterference},
       {"Living Room Scene", LoadLivingScene},
       {"Cornell Box", LoadCornellBox},
-      {"Interference", LoadInterference},
   };
 }
 
