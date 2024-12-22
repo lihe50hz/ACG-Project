@@ -973,10 +973,209 @@ void LoadLivingScene(Scene *scene) {
   Material sofamiddlepillow_material;
   scene->SetEntityMaterial(sofamiddlepillow_id, sofamiddlepillow_material);
 
+  // Bottom Pillar
+  int bottompillar_id = scene->CreateEntity();
+
+  Mesh bottompillar_mesh;
+  bottompillar_mesh.LoadObjFile(FindAssetsFile("mesh/living/bottompillar.obj"));
+  auto bottompillar_mesh_id =
+      asset_manager->LoadMesh(bottompillar_mesh, "BottomPillarMesh");
+  scene->SetEntityMesh(bottompillar_id, bottompillar_mesh_id);
+
+  Material bottompillar_material;
+  scene->SetEntityMaterial(bottompillar_id, bottompillar_material);
+
+  // Television Edge
+  int televisionedge_id = scene->CreateEntity();
+
+  Mesh televisionedge_mesh;
+  televisionedge_mesh.LoadObjFile(FindAssetsFile("mesh/living/televisionedge.obj"));
+  auto televisionedge_mesh_id =
+      asset_manager->LoadMesh(televisionedge_mesh, "TelevisionEdgeMesh");
+  scene->SetEntityMesh(televisionedge_id, televisionedge_mesh_id);
+
+  Material televisionedge_material;
+  scene->SetEntityMaterial(televisionedge_id, televisionedge_material);
+
+  // Television Center
+  int televisioncenter_id = scene->CreateEntity();
+
+  Mesh televisioncenter_mesh;
+  televisioncenter_mesh.LoadObjFile(FindAssetsFile("mesh/living/televisioncenter.obj"));
+  auto televisioncenter_mesh_id =
+      asset_manager->LoadMesh(televisioncenter_mesh, "TelevisionCenterMesh");
+  scene->SetEntityMesh(televisioncenter_id, televisioncenter_mesh_id);
+
+  Material televisioncenter_material;
+  scene->SetEntityMaterial(televisioncenter_id, televisioncenter_material);
+
+  // Big Stereo 1 (shell without front face and top face)
+  int bigstereo1_id = scene->CreateEntity();
+
+  Mesh bigstereo1_mesh;
+  bigstereo1_mesh.LoadObjFile(FindAssetsFile("mesh/living/bigstereo1.obj"));
+  auto bigstereo1_mesh_id =
+      asset_manager->LoadMesh(bigstereo1_mesh, "BigStereo1Mesh");
+  scene->SetEntityMesh(bigstereo1_id, bigstereo1_mesh_id);
+
+  Material bigstereo1_material;
+  bigstereo1_material.base_color = {1.0f, 0.0f, 0.0f};
+  scene->SetEntityMaterial(bigstereo1_id, bigstereo1_material);
+
+  // Big Stereo 2 (front face and top face without the middle band)
+  int bigstereo2_id = scene->CreateEntity();
+
+  Mesh bigstereo2_mesh;
+  bigstereo2_mesh.LoadObjFile(FindAssetsFile("mesh/living/bigstereo2.obj"));
+  auto bigstereo2_mesh_id =
+      asset_manager->LoadMesh(bigstereo2_mesh, "BigStereo2Mesh");
+  scene->SetEntityMesh(bigstereo2_id, bigstereo2_mesh_id);
+
+  Texture bigstereo2_texture;
+  bigstereo2_texture.LoadFromFile(
+      FindAssetsFile("texture/living/stereo.jpg"), LDRColorSpace::UNORM);
+  auto bigstereo2_texture_id = asset_manager->LoadTexture(
+      bigstereo2_texture, "BigStereo2Texture");
+  scene->SetEntityAlbedoDetailTexture(bigstereo2_id, bigstereo2_texture_id);
+
+  Material bigstereo2_material;
+  bigstereo2_material.base_color = {0.0f, 1.0f, 0.0f};
+  scene->SetEntityMaterial(bigstereo2_id, bigstereo2_material);
+
+  // Big Stereo 3 (middle band without the sounding circle)
+  int bigstereo3_id = scene->CreateEntity();
+
+  Mesh bigstereo3_mesh;
+  bigstereo3_mesh.LoadObjFile(FindAssetsFile("mesh/living/bigstereo3.obj"));
+  auto bigstereo3_mesh_id =
+      asset_manager->LoadMesh(bigstereo3_mesh, "BigStereo3Mesh");
+  scene->SetEntityMesh(bigstereo3_id, bigstereo3_mesh_id);
+
+  Material bigstereo3_material;
+  bigstereo3_material.base_color = {0.0f, 0.0f, 1.0f};
+  scene->SetEntityMaterial(bigstereo3_id, bigstereo3_material);
+
+  // Big Stereo 4 (the sounding circle)
+  int bigstereo4_id = scene->CreateEntity();
+
+  Mesh bigstereo4_mesh;
+  bigstereo4_mesh.LoadObjFile(FindAssetsFile("mesh/living/bigstereo4.obj"));
+  auto bigstereo4_mesh_id =
+      asset_manager->LoadMesh(bigstereo4_mesh, "BigStereo4Mesh");
+  scene->SetEntityMesh(bigstereo4_id, bigstereo4_mesh_id);
+
+  Material bigstereo4_material;
+  scene->SetEntityMaterial(bigstereo4_id, bigstereo4_material);
+
+  // Small Stereo Foot
+  int smallstereofoot_id = scene->CreateEntity();
+
+  Mesh smallstereofoot_mesh;
+  smallstereofoot_mesh.LoadObjFile(FindAssetsFile("mesh/living/smallstereofoot.obj"));
+  auto smallstereofoot_mesh_id =
+      asset_manager->LoadMesh(smallstereofoot_mesh, "SmallStereoFootMesh");
+  scene->SetEntityMesh(smallstereofoot_id, smallstereofoot_mesh_id);
+
+  Material smallstereofoot_material;
+  scene->SetEntityMaterial(smallstereofoot_id, smallstereofoot_material);
+
+  // Small Stereo Head 1 (shell without front face)
+  int smallstereohead1_id = scene->CreateEntity();
+
+  Mesh smallstereohead1_mesh;
+  smallstereohead1_mesh.LoadObjFile(FindAssetsFile("mesh/living/smallstereohead1.obj"));
+  auto smallstereohead1_mesh_id =
+      asset_manager->LoadMesh(smallstereohead1_mesh, "SmallStereoHead1Mesh");
+  scene->SetEntityMesh(smallstereohead1_id, smallstereohead1_mesh_id);
+
+  Material smallstereohead1_material;
+  smallstereohead1_material.base_color = {1.0f, 0.0f, 0.0f};
+  scene->SetEntityMaterial(smallstereohead1_id, smallstereohead1_material);
+
+  // Small Stereo Head 2 (front face)
+  int smallstereohead2_id = scene->CreateEntity();
+
+  Mesh smallstereohead2_mesh;
+  smallstereohead2_mesh.LoadObjFile(FindAssetsFile("mesh/living/smallstereohead2.obj"));
+  auto smallstereohead2_mesh_id =
+      asset_manager->LoadMesh(smallstereohead2_mesh, "SmallStereoHead2Mesh");
+  scene->SetEntityMesh(smallstereohead2_id, smallstereohead2_mesh_id);
+
+  Texture smallstereohead2_texture;
+  smallstereohead2_texture.LoadFromFile(
+      FindAssetsFile("texture/living/stereo.jpg"), LDRColorSpace::UNORM);
+  auto smallstereohead2_texture_id = asset_manager->LoadTexture(
+      smallstereohead2_texture, "SmallStereoHead2Texture");
+  scene->SetEntityAlbedoDetailTexture(smallstereohead2_id, smallstereohead2_texture_id);
+
+  Material smallstereohead2_material;
+  smallstereohead2_material.base_color = {0.0f, 1.0f, 0.0f};
+  scene->SetEntityMaterial(smallstereohead2_id, smallstereohead2_material);
+
+  // Left Upper Box
+  int leftupperbox_id = scene->CreateEntity();
+
+  Mesh leftupperbox_mesh;
+  leftupperbox_mesh.LoadObjFile(FindAssetsFile("mesh/living/leftupperbox.obj"));
+  auto leftupperbox_mesh_id =
+      asset_manager->LoadMesh(leftupperbox_mesh, "LeftUpperBoxMesh");
+  scene->SetEntityMesh(leftupperbox_id, leftupperbox_mesh_id);
+
+  Material leftupperbox_material;
+  scene->SetEntityMaterial(leftupperbox_id, leftupperbox_material);
+
+  // Left Middle Box
+  int leftmiddlebox_id = scene->CreateEntity();
+
+  Mesh leftmiddlebox_mesh;
+  leftmiddlebox_mesh.LoadObjFile(FindAssetsFile("mesh/living/leftmiddlebox.obj"));
+  auto leftmiddlebox_mesh_id =
+      asset_manager->LoadMesh(leftmiddlebox_mesh, "LeftMiddleBoxMesh");
+  scene->SetEntityMesh(leftmiddlebox_id, leftmiddlebox_mesh_id);
+
+  Material leftmiddlebox_material;
+  scene->SetEntityMaterial(leftmiddlebox_id, leftmiddlebox_material);
+
+  // Left Lower Box
+  int leftlowerbox_id = scene->CreateEntity();
+
+  Mesh leftlowerbox_mesh;
+  leftlowerbox_mesh.LoadObjFile(FindAssetsFile("mesh/living/leftlowerbox.obj"));
+  auto leftlowerbox_mesh_id =
+      asset_manager->LoadMesh(leftlowerbox_mesh, "LeftLowerBoxMesh");
+  scene->SetEntityMesh(leftlowerbox_id, leftlowerbox_mesh_id);
+
+  Material leftlowerbox_material;
+  scene->SetEntityMaterial(leftlowerbox_id, leftlowerbox_material);
+
+  // Right Box
+  int rightbox_id = scene->CreateEntity();
+
+  Mesh rightbox_mesh;
+  rightbox_mesh.LoadObjFile(FindAssetsFile("mesh/living/rightbox.obj"));
+  auto rightbox_mesh_id =
+      asset_manager->LoadMesh(rightbox_mesh, "RightBoxMesh");
+  scene->SetEntityMesh(rightbox_id, rightbox_mesh_id);
+
+  Material rightbox_material;
+  scene->SetEntityMaterial(rightbox_id, rightbox_material);
+
+  // Box Button
+  int boxbutton_id = scene->CreateEntity();
+
+  Mesh boxbutton_mesh;
+  boxbutton_mesh.LoadObjFile(FindAssetsFile("mesh/living/boxbutton.obj"));
+  auto boxbutton_mesh_id =
+      asset_manager->LoadMesh(boxbutton_mesh, "BoxButtonMesh");
+  scene->SetEntityMesh(boxbutton_id, boxbutton_mesh_id);
+
+  Material boxbutton_material;
+  scene->SetEntityMaterial(boxbutton_id, boxbutton_material);
+
   scene->Camera()->SetFar(500.0f);
   scene->Camera()->SetNear(0.05f);
   scene->Camera()->SetPosition({0.0f, 0.1f, 1.2f});
-  scene->Camera()->SetCameraSpeed(10.0f);
+  scene->Camera()->SetCameraSpeed(2.0f);
 }
 
 }  // namespace sparkium
