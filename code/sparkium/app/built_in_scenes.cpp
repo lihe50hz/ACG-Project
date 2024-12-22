@@ -621,6 +621,9 @@ void LoadLivingScene(Scene *scene) {
   floor_mesh.LoadObjFile(FindAssetsFile("mesh/living/floor.obj"));
   auto floor_mesh_id = asset_manager->LoadMesh(floor_mesh, "FloorMesh");
   Material floor_material;
+  floor_material.type = 2;
+  floor_material.metallic = 0.5;
+  floor_material.roughness = 0.2;
   scene->SetEntityMesh(floor_id, floor_mesh_id);
   scene->SetEntityMaterial(floor_id, floor_material);
 
@@ -675,8 +678,26 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(ceiling_id, ceiling_mesh_id);
   scene->SetEntityMaterial(ceiling_id, ceiling_material);
 
+  // Wood09
+  Texture wood09_texture;
+  wood09_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood09_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto wood09_texture_id =
+      asset_manager->LoadTexture(wood09_texture, "Wood09Texture");
+
+  Texture wood09_normal_texture;
+  wood09_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood09_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto wood09_normal_texture_id = asset_manager->LoadTexture(
+      wood09_normal_texture, "Wood09NormalTexture");
+
   // Four Chairs
   int fourchairs_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(fourchairs_id, wood09_texture_id);
+  scene->SetEntityNormalTexture(fourchairs_id, wood09_normal_texture_id);
 
   Mesh fourchairs_mesh;
   fourchairs_mesh.LoadObjFile(FindAssetsFile("mesh/living/fourchairs.obj"));
@@ -688,6 +709,9 @@ void LoadLivingScene(Scene *scene) {
 
   // Two Chairs
   int twochairs_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(twochairs_id, wood09_texture_id);
+  scene->SetEntityNormalTexture(twochairs_id, wood09_normal_texture_id);
 
   Mesh twochairs_mesh;
   twochairs_mesh.LoadObjFile(FindAssetsFile("mesh/living/twochairs.obj"));
@@ -701,6 +725,9 @@ void LoadLivingScene(Scene *scene) {
   // Table Face
   int tableface_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(tableface_id, wood09_texture_id);
+  scene->SetEntityNormalTexture(tableface_id, wood09_normal_texture_id);
+
   Mesh tableface_mesh;
   tableface_mesh.LoadObjFile(FindAssetsFile("mesh/living/tableface.obj"));
   auto tableface_mesh_id =
@@ -712,6 +739,9 @@ void LoadLivingScene(Scene *scene) {
 
   // Table Feet
   int tablefeet_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(tablefeet_id, wood09_texture_id);
+  scene->SetEntityNormalTexture(tablefeet_id, wood09_normal_texture_id);
 
   Mesh tablefeet_mesh;
   tablefeet_mesh.LoadObjFile(FindAssetsFile("mesh/living/tablefeet.obj"));
@@ -725,6 +755,22 @@ void LoadLivingScene(Scene *scene) {
   // Plate
   int plate_id = scene->CreateEntity();
 
+  Texture plate_texture;
+  plate_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood20_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto plate_texture_id =
+      asset_manager->LoadTexture(plate_texture, "PlateTexture");
+  scene->SetEntityAlbedoTexture(plate_id, plate_texture_id);
+
+  Texture plate_normal_texture;
+  plate_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood20_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto plate_normal_texture_id = asset_manager->LoadTexture(
+      plate_normal_texture, "PlateNormalTexture");
+  scene->SetEntityNormalTexture(plate_id, plate_normal_texture_id);
+  
   Mesh plate_mesh;
   plate_mesh.LoadObjFile(FindAssetsFile("mesh/living/plate.obj"));
   auto plate_mesh_id =
@@ -746,6 +792,20 @@ void LoadLivingScene(Scene *scene) {
   Material cups_material;
   scene->SetEntityMaterial(cups_id, cups_material);
 
+  // Three Light
+  int threelight_id = scene->CreateEntity();
+
+  Mesh threelight_mesh;
+  threelight_mesh.LoadObjFile(FindAssetsFile("mesh/living/threelight.obj"));
+  auto threelight_mesh_id =
+      asset_manager->LoadMesh(threelight_mesh, "ThreeLightMesh");
+  Material threelight_material;
+  threelight_material.base_color = {0.3f, 0.3f, 0.3f};
+  threelight_material.emission = {1.0f, 1.0f, 1.0f};
+  threelight_material.emission_strength = 500.0f;
+  scene->SetEntityMesh(threelight_id, threelight_mesh_id);
+  scene->SetEntityMaterial(threelight_id, threelight_material);
+
   // Ceiling Light
   int ceilinglight_id = scene->CreateEntity();
 
@@ -756,21 +816,15 @@ void LoadLivingScene(Scene *scene) {
   Material ceilinglight_material;
   ceilinglight_material.base_color = {0.3f, 0.3f, 0.3f};
   ceilinglight_material.emission = {1.0f, 1.0f, 1.0f};
-  ceilinglight_material.emission_strength = 100.0f;
+  ceilinglight_material.emission_strength = 200.0f;
   scene->SetEntityMesh(ceilinglight_id, ceilinglight_mesh_id);
   scene->SetEntityMaterial(ceilinglight_id, ceilinglight_material);
 
   // Ceiling Light Edge
   int ceilinglightedge_id = scene->CreateEntity();
 
-  Texture ceilinglightedge_texture;
-  ceilinglightedge_texture.LoadFromFile(
-      FindAssetsFile("texture/living/Wood09_diffuse_xtm.jpg"),
-      LDRColorSpace::UNORM);
-  auto ceilinglightedge_texture_id = asset_manager->LoadTexture(
-      ceilinglightedge_texture, "CeilingLightEdgeTexture");
-  scene->SetEntityAlbedoTexture(ceilinglightedge_id,
-                                ceilinglightedge_texture_id);
+  scene->SetEntityAlbedoTexture(ceilinglightedge_id, wood09_texture_id);
+  scene->SetEntityNormalTexture(ceilinglightedge_id, wood09_normal_texture_id);
 
   Mesh ceilinglightedge_mesh;
   ceilinglightedge_mesh.LoadObjFile(
@@ -784,6 +838,9 @@ void LoadLivingScene(Scene *scene) {
   // Tea Table
   int teatable_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(teatable_id, wood09_texture_id);
+  scene->SetEntityNormalTexture(teatable_id, wood09_normal_texture_id);
+
   Mesh teatable_mesh;
   teatable_mesh.LoadObjFile(FindAssetsFile("mesh/living/teatable.obj"));
   auto teatable_mesh_id =
@@ -793,8 +850,27 @@ void LoadLivingScene(Scene *scene) {
   Material teatable_material;
   scene->SetEntityMaterial(teatable_id, teatable_material);
 
+  // Fabric01
+  Texture fabric01_texture;
+  fabric01_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Fabric01_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto fabric01_texture_id = asset_manager->LoadTexture(
+      fabric01_texture, "Fabric01Texture");
+
+  Texture fabric01_normal_texture;
+  fabric01_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Fabric01_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto fabric01_normal_texture_id = asset_manager->LoadTexture(
+      fabric01_normal_texture, "Fabric01NormalTexture");
+
   // Sofa Left Lower Cushion
   int sofaleftlowercushion_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(sofaleftlowercushion_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofaleftlowercushion_id,
+                                fabric01_normal_texture_id);
 
   Mesh sofaleftlowercushion_mesh;
   sofaleftlowercushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftlowercushion.obj"));
@@ -808,6 +884,10 @@ void LoadLivingScene(Scene *scene) {
   // Sofa Left Upper Cushion
   int sofaleftuppercushion_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(sofaleftuppercushion_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofaleftuppercushion_id,
+                                fabric01_normal_texture_id);
+
   Mesh sofaleftuppercushion_mesh;
   sofaleftuppercushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftuppercushion.obj"));
   auto sofaleftuppercushion_mesh_id =
@@ -819,6 +899,10 @@ void LoadLivingScene(Scene *scene) {
 
   // Sofa Right Lower Cushion
   int sofarightlowercushion_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(sofarightlowercushion_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofarightlowercushion_id,
+                                fabric01_normal_texture_id);
 
   Mesh sofarightlowercushion_mesh;
   sofarightlowercushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightlowercushion.obj"));
@@ -832,6 +916,10 @@ void LoadLivingScene(Scene *scene) {
   // Sofa Right Upper Cushion
   int sofarightuppercushion_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(sofarightuppercushion_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofarightuppercushion_id,
+                                fabric01_normal_texture_id);
+
   Mesh sofarightuppercushion_mesh;
   sofarightuppercushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightuppercushion.obj"));
   auto sofarightuppercushion_mesh_id =
@@ -843,6 +931,9 @@ void LoadLivingScene(Scene *scene) {
 
   // Sofa Left Arm
   int sofaleftarm_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(sofaleftarm_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofaleftarm_id, fabric01_normal_texture_id);
 
   Mesh sofaleftarm_mesh;
   sofaleftarm_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftarm.obj"));
@@ -856,6 +947,9 @@ void LoadLivingScene(Scene *scene) {
   // Sofa Right Arm
   int sofarightarm_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(sofarightarm_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofarightarm_id, fabric01_normal_texture_id);
+
   Mesh sofarightarm_mesh;
   sofarightarm_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightarm.obj"));
   auto sofarightarm_mesh_id =
@@ -867,6 +961,11 @@ void LoadLivingScene(Scene *scene) {
 
   // Sofa Left Side Back Cushions
   int sofaleftsidebackcushions_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(sofaleftsidebackcushions_id,
+                                fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofaleftsidebackcushions_id,
+                                fabric01_normal_texture_id);
 
   Mesh sofaleftsidebackcushions_mesh;
   sofaleftsidebackcushions_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftsidebackcushions.obj"));
@@ -880,6 +979,11 @@ void LoadLivingScene(Scene *scene) {
   // Sofa Left Middle Back Cushion
   int sofaleftmiddlebackcushion_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(sofaleftmiddlebackcushion_id,
+                                fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofaleftmiddlebackcushion_id,
+                                fabric01_normal_texture_id);
+
   Mesh sofaleftmiddlebackcushion_mesh;
   sofaleftmiddlebackcushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftmiddlebackcushion.obj"));
   auto sofaleftmiddlebackcushion_mesh_id =
@@ -891,6 +995,11 @@ void LoadLivingScene(Scene *scene) {
 
   // Sofa Right Side Back Cushions
   int sofarightsidebackcushions_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(sofarightsidebackcushions_id,
+                                fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofarightsidebackcushions_id,
+                                fabric01_normal_texture_id);
 
   Mesh sofarightsidebackcushions_mesh;
   sofarightsidebackcushions_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightsidebackcushions.obj"));
@@ -904,6 +1013,11 @@ void LoadLivingScene(Scene *scene) {
   // Sofa Right Middle Back Cushion
   int sofarightmiddlebackcushion_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(sofarightmiddlebackcushion_id,
+                                fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofarightmiddlebackcushion_id,
+                                fabric01_normal_texture_id);
+
   Mesh sofarightmiddlebackcushion_mesh;
   sofarightmiddlebackcushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightmiddlebackcushion.obj"));
   auto sofarightmiddlebackcushion_mesh_id =
@@ -915,6 +1029,9 @@ void LoadLivingScene(Scene *scene) {
 
   // Sofa Left Back
   int sofaleftback_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(sofaleftback_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofaleftback_id, fabric01_normal_texture_id);
 
   Mesh sofaleftback_mesh;
   sofaleftback_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftback.obj"));
@@ -928,6 +1045,9 @@ void LoadLivingScene(Scene *scene) {
   // Sofa Right Back
   int sofarightback_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(sofarightback_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofarightback_id, fabric01_normal_texture_id);
+
   Mesh sofarightback_mesh;
   sofarightback_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightback.obj"));
   auto sofarightback_mesh_id =
@@ -939,6 +1059,9 @@ void LoadLivingScene(Scene *scene) {
 
   // Sofa Left Pillows
   int sofaleftpillows_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(sofaleftpillows_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofaleftpillows_id, fabric01_normal_texture_id);
 
   Mesh sofaleftpillows_mesh;
   sofaleftpillows_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftpillows.obj"));
@@ -952,6 +1075,10 @@ void LoadLivingScene(Scene *scene) {
   // Sofa Right Pillows
   int sofarightpillows_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(sofarightpillows_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofarightpillows_id,
+                                fabric01_normal_texture_id);
+
   Mesh sofarightpillows_mesh;
   sofarightpillows_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightpillows.obj"));
   auto sofarightpillows_mesh_id =
@@ -964,6 +1091,10 @@ void LoadLivingScene(Scene *scene) {
   // Sofa Middle Pillow
   int sofamiddlepillow_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(sofamiddlepillow_id, fabric01_texture_id);
+  scene->SetEntityNormalTexture(sofamiddlepillow_id,
+                                fabric01_normal_texture_id);
+
   Mesh sofamiddlepillow_mesh;
   sofamiddlepillow_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofamiddlepillow.obj"));
   auto sofamiddlepillow_mesh_id =
@@ -975,6 +1106,24 @@ void LoadLivingScene(Scene *scene) {
 
   // Bottom Pillar
   int bottompillar_id = scene->CreateEntity();
+
+  Texture bottompillar_texture;
+  bottompillar_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Marble04_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto bottompillar_texture_id = asset_manager->LoadTexture(
+      bottompillar_texture, "BottomPillarTexture");
+  scene->SetEntityAlbedoTexture(bottompillar_id,
+                                bottompillar_texture_id);
+
+  Texture bottompillar_normal_texture;
+  bottompillar_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Marble04_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto bottompillar_normal_texture_id = asset_manager->LoadTexture(
+      bottompillar_normal_texture, "BottomPillarNormalTexture");
+  scene->SetEntityNormalTexture(bottompillar_id,
+                                bottompillar_normal_texture_id);
 
   Mesh bottompillar_mesh;
   bottompillar_mesh.LoadObjFile(FindAssetsFile("mesh/living/bottompillar.obj"));
@@ -995,6 +1144,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(televisionedge_id, televisionedge_mesh_id);
 
   Material televisionedge_material;
+  televisionedge_material.base_color = {0.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(televisionedge_id, televisionedge_material);
 
   // Television Center
@@ -1007,10 +1157,28 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(televisioncenter_id, televisioncenter_mesh_id);
 
   Material televisioncenter_material;
+  televisioncenter_material.type = 1;
+  televisioncenter_material.base_color = {0.01f, 0.01f, 0.01f};
   scene->SetEntityMaterial(televisioncenter_id, televisioncenter_material);
 
   // Big Stereo 1 (shell without front face and top face)
   int bigstereo1_id = scene->CreateEntity();
+
+  Texture bigstereo1_texture;
+  bigstereo1_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood18_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto bigstereo1_texture_id =
+      asset_manager->LoadTexture(bigstereo1_texture, "BigStereo1Texture");
+  scene->SetEntityAlbedoTexture(bigstereo1_id, bigstereo1_texture_id);
+
+  Texture bigstereo1_normal_texture;
+  bigstereo1_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood18_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto bigstereo1_normal_texture_id = asset_manager->LoadTexture(
+      bigstereo1_normal_texture, "BigStereo1NormalTexture");
+  scene->SetEntityNormalTexture(bigstereo1_id, bigstereo1_normal_texture_id);
 
   Mesh bigstereo1_mesh;
   bigstereo1_mesh.LoadObjFile(FindAssetsFile("mesh/living/bigstereo1.obj"));
@@ -1019,7 +1187,6 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(bigstereo1_id, bigstereo1_mesh_id);
 
   Material bigstereo1_material;
-  bigstereo1_material.base_color = {1.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(bigstereo1_id, bigstereo1_material);
 
   // Big Stereo 2 (front face and top face without the middle band)
@@ -1039,7 +1206,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityAlbedoDetailTexture(bigstereo2_id, bigstereo2_texture_id);
 
   Material bigstereo2_material;
-  bigstereo2_material.base_color = {0.0f, 1.0f, 0.0f};
+  bigstereo2_material.base_color = {0.08f, 0.08f, 0.08f};
   scene->SetEntityMaterial(bigstereo2_id, bigstereo2_material);
 
   // Big Stereo 3 (middle band without the sounding circle)
@@ -1052,7 +1219,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(bigstereo3_id, bigstereo3_mesh_id);
 
   Material bigstereo3_material;
-  bigstereo3_material.base_color = {0.0f, 0.0f, 1.0f};
+  bigstereo3_material.base_color = {0.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(bigstereo3_id, bigstereo3_material);
 
   // Big Stereo 4 (the sounding circle)
@@ -1070,6 +1237,23 @@ void LoadLivingScene(Scene *scene) {
   // Small Stereo Foot
   int smallstereofoot_id = scene->CreateEntity();
 
+  Texture smallstereofoot_texture;
+  smallstereofoot_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Metal29_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto smallstereofoot_texture_id =
+      asset_manager->LoadTexture(smallstereofoot_texture, "SmallStereoFootTexture");
+  scene->SetEntityAlbedoTexture(smallstereofoot_id, smallstereofoot_texture_id);
+
+  Texture smallstereofoot_normal_texture;
+  smallstereofoot_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Metal29_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto smallstereofoot_normal_texture_id = asset_manager->LoadTexture(
+      smallstereofoot_normal_texture, "SmallStereoFootNormalTexture");
+  scene->SetEntityNormalTexture(smallstereofoot_id,
+                                smallstereofoot_normal_texture_id);
+
   Mesh smallstereofoot_mesh;
   smallstereofoot_mesh.LoadObjFile(FindAssetsFile("mesh/living/smallstereofoot.obj"));
   auto smallstereofoot_mesh_id =
@@ -1077,10 +1261,28 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(smallstereofoot_id, smallstereofoot_mesh_id);
 
   Material smallstereofoot_material;
+  smallstereofoot_material.base_color = {0.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(smallstereofoot_id, smallstereofoot_material);
 
   // Small Stereo Head 1 (shell without front face)
   int smallstereohead1_id = scene->CreateEntity();
+
+  Texture smallstereohead1_texture;
+  smallstereohead1_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood18_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto smallstereohead1_texture_id =
+      asset_manager->LoadTexture(smallstereohead1_texture, "SmallStereoHead1Texture");
+  scene->SetEntityAlbedoTexture(smallstereohead1_id, smallstereohead1_texture_id);
+
+  Texture smallstereohead1_normal_texture;
+  smallstereohead1_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood18_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto smallstereohead1_normal_texture_id = asset_manager->LoadTexture(
+      smallstereohead1_normal_texture, "SmallStereoHead1NormalTexture");
+  scene->SetEntityNormalTexture(smallstereohead1_id,
+                                smallstereohead1_normal_texture_id);
 
   Mesh smallstereohead1_mesh;
   smallstereohead1_mesh.LoadObjFile(FindAssetsFile("mesh/living/smallstereohead1.obj"));
@@ -1089,7 +1291,6 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(smallstereohead1_id, smallstereohead1_mesh_id);
 
   Material smallstereohead1_material;
-  smallstereohead1_material.base_color = {1.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(smallstereohead1_id, smallstereohead1_material);
 
   // Small Stereo Head 2 (front face)
@@ -1109,7 +1310,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityAlbedoDetailTexture(smallstereohead2_id, smallstereohead2_texture_id);
 
   Material smallstereohead2_material;
-  smallstereohead2_material.base_color = {0.0f, 1.0f, 0.0f};
+  smallstereohead2_material.base_color = {0.06f, 0.06f,0.06f,};
   scene->SetEntityMaterial(smallstereohead2_id, smallstereohead2_material);
 
   // Left Upper Box
@@ -1122,6 +1323,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(leftupperbox_id, leftupperbox_mesh_id);
 
   Material leftupperbox_material;
+  leftupperbox_material.base_color = {0.05f, 0.05f, 0.05f};
   scene->SetEntityMaterial(leftupperbox_id, leftupperbox_material);
 
   // Left Middle Box
@@ -1134,6 +1336,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(leftmiddlebox_id, leftmiddlebox_mesh_id);
 
   Material leftmiddlebox_material;
+  leftmiddlebox_material.base_color = {0.02f, 0.02f, 0.02f};
   scene->SetEntityMaterial(leftmiddlebox_id, leftmiddlebox_material);
 
   // Left Lower Box
@@ -1146,6 +1349,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(leftlowerbox_id, leftlowerbox_mesh_id);
 
   Material leftlowerbox_material;
+  leftlowerbox_material.base_color = {0.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(leftlowerbox_id, leftlowerbox_material);
 
   // Right Box
@@ -1158,6 +1362,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(rightbox_id, rightbox_mesh_id);
 
   Material rightbox_material;
+  rightbox_material.base_color = {0.2f, 0.2f, 0.2f};
   scene->SetEntityMaterial(rightbox_id, rightbox_material);
 
   // Box Button
@@ -1170,10 +1375,18 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(boxbutton_id, boxbutton_mesh_id);
 
   Material boxbutton_material;
+  boxbutton_material.base_color = {0.1f, 0.1f, 0.1f};
   scene->SetEntityMaterial(boxbutton_id, boxbutton_material);
 
   // Curtain
   int curtain_id = scene->CreateEntity();
+
+  Texture curtain_texture;
+  curtain_texture.LoadFromFile(
+      FindAssetsFile("texture/living/ae0419b0-c9b0-4f2b-af1d-a9aa6368b43f.jpg"), LDRColorSpace::UNORM);
+  auto curtain_texture_id = asset_manager->LoadTexture(
+      curtain_texture, "CurtainTexture");
+  scene->SetEntityAlbedoTexture(curtain_id, curtain_texture_id);
 
   Mesh curtain_mesh;
   curtain_mesh.LoadObjFile(FindAssetsFile("mesh/living/curtain.obj"));
@@ -1199,6 +1412,24 @@ void LoadLivingScene(Scene *scene) {
   // Short Cupboard
   int shortcupboard_id = scene->CreateEntity();
 
+  Texture shortcupboard_texture;
+  shortcupboard_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood10_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto shortcupboard_texture_id = asset_manager->LoadTexture(
+      shortcupboard_texture, "ShortCupboardTexture");
+  scene->SetEntityAlbedoTexture(shortcupboard_id,
+                                shortcupboard_texture_id);
+
+  Texture shortcupboard_normal_texture;
+  shortcupboard_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood10_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto shortcupboard_normal_texture_id = asset_manager->LoadTexture(
+      shortcupboard_normal_texture, "ShortCupboardNormalTexture");
+  scene->SetEntityNormalTexture(shortcupboard_id,
+                                shortcupboard_normal_texture_id);
+
   Mesh shortcupboard_mesh;
   shortcupboard_mesh.LoadObjFile(FindAssetsFile("mesh/living/shortcupboard.obj"));
   auto shortcupboard_mesh_id =
@@ -1210,6 +1441,23 @@ void LoadLivingScene(Scene *scene) {
 
   // Long Cupboard
   int longcupboard_id = scene->CreateEntity();
+
+  Texture longcupboard_texture;
+  longcupboard_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood10_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto longcupboard_texture_id =
+      asset_manager->LoadTexture(longcupboard_texture, "LongCupboardTexture");
+  scene->SetEntityAlbedoTexture(longcupboard_id, longcupboard_texture_id);
+
+  Texture longcupboard_normal_texture;
+  longcupboard_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood10_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto longcupboard_normal_texture_id = asset_manager->LoadTexture(
+      longcupboard_normal_texture, "LongCupboardNormalTexture");
+  scene->SetEntityNormalTexture(longcupboard_id,
+                                longcupboard_normal_texture_id);
 
   Mesh longcupboard_mesh;
   longcupboard_mesh.LoadObjFile(FindAssetsFile("mesh/living/longcupboard.obj"));
@@ -1223,6 +1471,22 @@ void LoadLivingScene(Scene *scene) {
   // Lamp 1 (lamp base)
   int lamp1_id = scene->CreateEntity();
 
+  Texture lamp1_texture;
+  lamp1_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Metal07_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto lamp1_texture_id =
+      asset_manager->LoadTexture(lamp1_texture, "Lamp1Texture");
+  scene->SetEntityAlbedoTexture(lamp1_id, lamp1_texture_id);
+
+  Texture lamp1_normal_texture;
+  lamp1_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Metal07_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto lamp1_normal_texture_id = asset_manager->LoadTexture(
+      lamp1_normal_texture, "Lamp1NormalTexture");
+  scene->SetEntityNormalTexture(lamp1_id, lamp1_normal_texture_id);
+
   Mesh lamp1_mesh;
   lamp1_mesh.LoadObjFile(FindAssetsFile("mesh/living/lamp1.obj"));
   auto lamp1_mesh_id =
@@ -1230,7 +1494,6 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(lamp1_id, lamp1_mesh_id);
 
   Material lamp1_material;
-  lamp1_material.base_color = {1.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(lamp1_id, lamp1_material);
 
   // Lamp 2 (lamp shade)
@@ -1243,11 +1506,26 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(lamp2_id, lamp2_mesh_id);
 
   Material lamp2_material;
-  lamp2_material.base_color = {0.0f, 1.0f, 0.0f};
   scene->SetEntityMaterial(lamp2_id, lamp2_material);
 
   // Sculpture
   int sculpture_id = scene->CreateEntity();
+
+  Texture sculpture_texture;
+  sculpture_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood17_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto sculpture_texture_id =
+      asset_manager->LoadTexture(sculpture_texture, "SculptureTexture");
+  scene->SetEntityAlbedoTexture(sculpture_id, sculpture_texture_id);
+
+  Texture sculpture_normal_texture;
+  sculpture_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood17_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto sculpture_normal_texture_id =
+      asset_manager->LoadTexture(sculpture_normal_texture, "SculptureNormalTexture");
+  scene->SetEntityNormalTexture(sculpture_id, sculpture_normal_texture_id);
 
   Mesh sculpture_mesh;
   sculpture_mesh.LoadObjFile(FindAssetsFile("mesh/living/sculpture.obj"));
@@ -1261,6 +1539,23 @@ void LoadLivingScene(Scene *scene) {
   // Sculpture Base
   int sculpturebase_id = scene->CreateEntity();
 
+  Texture sculpturebase_texture;
+  sculpturebase_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood17_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto sculpturebase_texture_id =
+      asset_manager->LoadTexture(sculpturebase_texture, "SculptureBaseTexture");
+  scene->SetEntityAlbedoTexture(sculpturebase_id, sculpturebase_texture_id);
+
+  Texture sculpturebase_normal_texture;
+  sculpturebase_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood17_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto sculpturebase_normal_texture_id = asset_manager->LoadTexture(
+      sculpturebase_normal_texture, "SculptureBaseNormalTexture");
+  scene->SetEntityNormalTexture(sculpturebase_id,
+                                sculpturebase_normal_texture_id);
+
   Mesh sculpturebase_mesh;
   sculpturebase_mesh.LoadObjFile(FindAssetsFile("mesh/living/sculpturebase.obj"));
   auto sculpturebase_mesh_id =
@@ -1272,6 +1567,9 @@ void LoadLivingScene(Scene *scene) {
 
   // Picture Edge
   int pictureedge_id = scene->CreateEntity();
+
+  scene->SetEntityAlbedoTexture(pictureedge_id, wood09_texture_id);
+  scene->SetEntityNormalTexture(pictureedge_id, wood09_normal_texture_id);
 
   Mesh pictureedge_mesh;
   pictureedge_mesh.LoadObjFile(FindAssetsFile("mesh/living/pictureedge.obj"));
@@ -1304,6 +1602,9 @@ void LoadLivingScene(Scene *scene) {
   // LongMa Spirit 1 (the edge)
   int LMspirit1_id = scene->CreateEntity();
 
+  scene->SetEntityAlbedoTexture(LMspirit1_id, wood09_texture_id);
+  scene->SetEntityNormalTexture(LMspirit1_id, wood09_normal_texture_id);
+
   Mesh LMspirit1_mesh;
   LMspirit1_mesh.LoadObjFile(FindAssetsFile("mesh/living/LMspirit1.obj"));
   auto LMspirit1_mesh_id =
@@ -1311,7 +1612,6 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(LMspirit1_id, LMspirit1_mesh_id);
 
   Material LMspirit1_material;
-  LMspirit1_material.base_color = {1.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(LMspirit1_id, LMspirit1_material);
 
   // LongMa Spirit 2 (the inner part around the actual picture)
@@ -1324,7 +1624,6 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(LMspirit2_id, LMspirit2_mesh_id);
 
   Material LMspirit2_material;
-  LMspirit2_material.base_color = {0.0f, 1.0f, 0.0f};
   scene->SetEntityMaterial(LMspirit2_id, LMspirit2_material);
 
   // LongMa Spirit 3 (the main picture)
@@ -1349,6 +1648,23 @@ void LoadLivingScene(Scene *scene) {
   // Inner Sculpture
   int innersculpture_id = scene->CreateEntity();
 
+  Texture innersculpture_texture;
+  innersculpture_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Metal07_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto innersculpture_texture_id =
+      asset_manager->LoadTexture(innersculpture_texture, "InnerSculptureTexture");
+  scene->SetEntityAlbedoTexture(innersculpture_id, innersculpture_texture_id);
+
+  Texture innersculpture_normal_texture;
+  innersculpture_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Metal07_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto innersculpture_normal_texture_id = asset_manager->LoadTexture(
+      innersculpture_normal_texture, "InnerSculptureNormalTexture");
+  scene->SetEntityNormalTexture(innersculpture_id,
+                                innersculpture_normal_texture_id);
+
   Mesh innersculpture_mesh;
   innersculpture_mesh.LoadObjFile(FindAssetsFile("mesh/living/innersculpture.obj"));
   auto innersculpture_mesh_id =
@@ -1361,6 +1677,22 @@ void LoadLivingScene(Scene *scene) {
   // Left Glass 1 (base, framework, and the back face)
   int leftglass1_id = scene->CreateEntity();
 
+  Texture leftglass1_texture;
+  leftglass1_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood10_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto leftglass1_texture_id = asset_manager->LoadTexture(
+      leftglass1_texture, "LeftGlass1Texture");
+  scene->SetEntityAlbedoTexture(leftglass1_id, leftglass1_texture_id);
+
+  Texture leftglass1_normal_texture;
+  leftglass1_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Wood10_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto leftglass1_normal_texture_id = asset_manager->LoadTexture(
+      leftglass1_normal_texture, "LeftGlass1NormalTexture");
+  scene->SetEntityNormalTexture(leftglass1_id, leftglass1_normal_texture_id);
+
   Mesh leftglass1_mesh;
   leftglass1_mesh.LoadObjFile(FindAssetsFile("mesh/living/leftglass1.obj"));
   auto leftglass1_mesh_id =
@@ -1368,7 +1700,6 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(leftglass1_id, leftglass1_mesh_id);
 
   Material leftglass1_material;
-  leftglass1_material.base_color = {1.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(leftglass1_id, leftglass1_material);
 
   // Left Glass 2 (the other faces)
@@ -1381,11 +1712,32 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(leftglass2_id, leftglass2_mesh_id);
 
   Material leftglass2_material;
-  leftglass2_material.base_color = {0.0f, 1.0f, 0.0f};
+  leftglass2_material.type = 2;
+  leftglass2_material.specular = 1.0;
+  leftglass2_material.transmission = 1.0;
+  leftglass2_material.transmission_roughness = 0.05;
+  leftglass2_material.ior = 1.1;
+  leftglass2_material.thin = 1.0;
   scene->SetEntityMaterial(leftglass2_id, leftglass2_material);
 
   // Right Glass 1 (the inner content)
   int rightglass1_id = scene->CreateEntity();
+
+  Texture rightglass1_texture;
+  rightglass1_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Marble18_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto rightglass1_texture_id =
+      asset_manager->LoadTexture(rightglass1_texture, "RightGlass1Texture");
+  scene->SetEntityAlbedoTexture(rightglass1_id, rightglass1_texture_id);
+
+  Texture rightglass1_normal_texture;
+  rightglass1_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Marble18_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto rightglass1_normal_texture_id = asset_manager->LoadTexture(
+      rightglass1_normal_texture, "RightGlass1NormalTexture");
+  scene->SetEntityNormalTexture(rightglass1_id, rightglass1_normal_texture_id);
 
   Mesh rightglass1_mesh;
   rightglass1_mesh.LoadObjFile(FindAssetsFile("mesh/living/rightglass1.obj"));
@@ -1394,11 +1746,26 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(rightglass1_id, rightglass1_mesh_id);
 
   Material rightglass1_material;
-  rightglass1_material.base_color = {1.0f, 0.0f, 0.0f};
   scene->SetEntityMaterial(rightglass1_id, rightglass1_material);
 
   // Right Glass 2 (the base and the framework)
   int rightglass2_id = scene->CreateEntity();
+
+  Texture rightglass2_texture;
+  rightglass2_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Metal07_diffuse_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto rightglass2_texture_id =
+      asset_manager->LoadTexture(rightglass2_texture, "RightGlass2Texture");
+  scene->SetEntityAlbedoTexture(rightglass2_id, rightglass2_texture_id);
+
+  Texture rightglass2_normal_texture;
+  rightglass2_normal_texture.LoadFromFile(
+      FindAssetsFile("texture/living/Metal07_normal_xtm.jpg"),
+      LDRColorSpace::UNORM);
+  auto rightglass2_normal_texture_id = asset_manager->LoadTexture(
+      rightglass2_normal_texture, "RightGlass2NormalTexture");
+  scene->SetEntityNormalTexture(rightglass2_id, rightglass2_normal_texture_id);
 
   Mesh rightglass2_mesh;
   rightglass2_mesh.LoadObjFile(FindAssetsFile("mesh/living/rightglass2.obj"));
@@ -1407,7 +1774,6 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(rightglass2_id, rightglass2_mesh_id);
 
   Material rightglass2_material;
-  rightglass2_material.base_color = {0.0f, 1.0f, 0.0f};
   scene->SetEntityMaterial(rightglass2_id, rightglass2_material);
 
   // Right Glass 3 (other faces of the glass)
@@ -1420,12 +1786,17 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(rightglass3_id, rightglass3_mesh_id);
 
   Material rightglass3_material;
-  rightglass3_material.base_color = {0.0f, 0.0f, 1.0f};
+  rightglass3_material.type = 2;
+  rightglass3_material.specular = 1.0;
+  rightglass3_material.transmission = 1.0;
+  rightglass3_material.transmission_roughness = 0.05;
+  rightglass3_material.ior = 1.1;
+  rightglass3_material.thin = 1.0;
   scene->SetEntityMaterial(rightglass3_id, rightglass3_material);
 
   scene->Camera()->SetFar(500.0f);
   scene->Camera()->SetNear(0.05f);
-  scene->Camera()->SetPosition({0.0f, 0.1f, 1.2f});
+  scene->Camera()->SetPosition({0.0f, 0.7f, 1.2f});
   scene->Camera()->SetCameraSpeed(2.0f);
 }
 
