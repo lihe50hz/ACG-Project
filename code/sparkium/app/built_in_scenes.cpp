@@ -1839,7 +1839,7 @@ void LoadInterference(Scene *scene) {
 
 	Mesh pointlight1_mesh;
   pointlight1_mesh.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
-  pointlight1_mesh.ThisIsPointLight(glm::vec3(-200.0, -200.0, -200.0));
+  pointlight1_mesh.Shift(glm::vec3(-200.0, -200.0, -200.0));
   int pointlight1_mesh_id = asset_manager->LoadMesh(pointlight1_mesh, "Pointlight1");
   scene->SetEntityMesh(pointlight1_id, pointlight1_mesh_id);
 
@@ -1855,7 +1855,7 @@ void LoadInterference(Scene *scene) {
 
 	Mesh pointlight2_mesh;
   pointlight2_mesh.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
-  pointlight2_mesh.ThisIsPointLight(glm::vec3(-300.0, -300.0, -300.0));
+  pointlight2_mesh.Shift(glm::vec3(-300.0, -300.0, -300.0));
   int pointlight2_mesh_id = asset_manager->LoadMesh(pointlight2_mesh, "Pointlight2");
   scene->SetEntityMesh(pointlight2_id, pointlight2_mesh_id);
 
@@ -1866,9 +1866,26 @@ void LoadInterference(Scene *scene) {
   pointlight2_material.center = {300.0f, 500.0f, 400.0f};
   scene->SetEntityMaterial(pointlight2_id, pointlight2_material);
 
+	// Glass
+	int glass_id = scene->CreateEntity();
+
+	Mesh glass_mesh;
+  glass_mesh.LoadObjFile(FindAssetsFile("mesh/glass.obj"));
+  glass_mesh.Shift(glm::vec3(224.0, 500.0, 500.0));
+  int glass_mesh_id = asset_manager->LoadMesh(glass_mesh, "Glass");
+  scene->SetEntityMesh(glass_id, glass_mesh_id);
+
+  Material glass_material;
+  glass_material.type = MATERIAL_TYPE_PRINCIPLED;
+	glass_material.specular = 1.0f;
+  glass_material.transmission = 1.0f;
+	glass_material.transmission_roughness= 0.01f;
+	glass_material.ior = 1.1;
+  scene->SetEntityMaterial(glass_id, glass_material);
+
 	scene->SetEnvmapSettings({0.0f, 0.0f, 0, 0});
-	scene->Camera()->SetPosition({500.0f, 500.0f, 500.0f});
-  scene->Camera()->SetEulerAngles({0.0f, glm::radians(180.0f), 0.0f});
+	scene->Camera()->SetPosition({148.0f, 500.0f, 500.0f});
+  scene->Camera()->SetEulerAngles({0.0f, glm::radians(90.0f), 0.0f});
   scene->Camera()->SetFov(glm::radians(40.0f));
   scene->Camera()->SetFar(2000.0f);
   scene->Camera()->SetCameraSpeed(100.0f);
