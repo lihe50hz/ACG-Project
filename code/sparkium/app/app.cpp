@@ -630,8 +630,8 @@ ImVec2 Application::ImGuiSettingsWindow() {
       scene_->SetEntityMetadata(selected_instances_[0], metadata);
     }
   }
-
-  static char save_path[256] = "D:\\UserFiles\\Tsinghua\\2024FallGrade3\\ACG\\project\\3.png";  // Ĭ��·��
+  
+  static char save_path[256] = "D:\\50hz\\Tsinghua\\Thrid_year-Autumn\\ACG\\project\\final\\Tyndall.png";  // Ĭ��·��
 
   ImGui::InputText("Save Path", save_path, IM_ARRAYSIZE(save_path));
 

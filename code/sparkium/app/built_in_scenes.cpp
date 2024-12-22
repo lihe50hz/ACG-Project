@@ -8,9 +8,11 @@ namespace sparkium {
 std::vector<std::pair<std::string, std::function<void(Scene *scene)>>>
 BuiltInSceneList() {
   return {
-      {"Interference", LoadInterference},
+      {"Interference Box", LoadInterferenceBox},
+      {"Tyndall Effect", LoadTyndall},
       {"Living Room Scene", LoadLivingScene},
       {"Cornell Box", LoadCornellBox},
+      {"Interference", LoadInterference},
   };
 }
 
@@ -807,8 +809,8 @@ void LoadLivingScene(Scene *scene) {
       asset_manager->LoadMesh(threelight_mesh, "ThreeLightMesh");
   Material threelight_material;
   threelight_material.base_color = {0.3f, 0.3f, 0.3f};
-  threelight_material.emission = {1.0f, 1.0f, 1.0f};
-  threelight_material.emission_strength = 500.0f;
+  threelight_material.emission = {1.0f, 1.0f, 0.0f};
+  threelight_material.emission_strength = 10000.0f;
   scene->SetEntityMesh(threelight_id, threelight_mesh_id);
   scene->SetEntityMaterial(threelight_id, threelight_material);
 
@@ -1800,6 +1802,25 @@ void LoadLivingScene(Scene *scene) {
   rightglass3_material.thin = 1.0;
   scene->SetEntityMaterial(rightglass3_id, rightglass3_material);
 
+  // Fog
+  /*int fog_id = scene->CreateEntity();
+
+  Mesh fog_mesh;
+  fog_mesh.LoadObjFile(FindAssetsFile("mesh/living/fog.obj"));
+  auto fog_mesh_id =
+      asset_manager->LoadMesh(fog_mesh, "FogMesh");
+  scene->SetEntityMesh(fog_id, fog_mesh_id);
+
+  Material fog_material;
+  fog_material.type = 3;
+  fog_material.sigma_s = glm::vec3{0.01f};
+  scene->SetEntityMaterial(fog_id, fog_material);
+  scene->SetEntityTransform(
+      fog_id,
+      glm::translate(glm::mat4{1.0f},
+                     glm::vec3{0.0f, 0.01f, 0.0f})
+  );*/
+
   scene->Camera()->SetFar(500.0f);
   scene->Camera()->SetNear(0.05f);
   scene->Camera()->SetPosition({0.0f, 0.7f, 1.2f});
@@ -1837,7 +1858,7 @@ void LoadInterference(Scene *scene) {
 	// Pointlight 1
   int pointlight1_id = scene->CreateEntity();
 
-	Mesh pointlight1_mesh;
+  Mesh pointlight1_mesh;
   pointlight1_mesh.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
   pointlight1_mesh.Shift(glm::vec3(-200.0, -200.0, -200.0));
   int pointlight1_mesh_id = asset_manager->LoadMesh(pointlight1_mesh, "Pointlight1");
@@ -1850,10 +1871,10 @@ void LoadInterference(Scene *scene) {
   pointlight1_material.center = {300.0f, 500.0f, 600.0f};
   scene->SetEntityMaterial(pointlight1_id, pointlight1_material);
 
-	// Pointlight 2
-	int pointlight2_id = scene->CreateEntity();
+  // Pointlight 2
+  int pointlight2_id = scene->CreateEntity();
 
-	Mesh pointlight2_mesh;
+  Mesh pointlight2_mesh;
   pointlight2_mesh.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
   pointlight2_mesh.Shift(glm::vec3(-300.0, -300.0, -300.0));
   int pointlight2_mesh_id = asset_manager->LoadMesh(pointlight2_mesh, "Pointlight2");
@@ -1866,10 +1887,10 @@ void LoadInterference(Scene *scene) {
   pointlight2_material.center = {300.0f, 500.0f, 400.0f};
   scene->SetEntityMaterial(pointlight2_id, pointlight2_material);
 
-	// Glass
-	int glass_id = scene->CreateEntity();
+  // Glass
+  int glass_id = scene->CreateEntity();
 
-	Mesh glass_mesh;
+  Mesh glass_mesh;
   glass_mesh.LoadObjFile(FindAssetsFile("mesh/glass.obj"));
   glass_mesh.Shift(glm::vec3(224.0, 500.0, 500.0));
   int glass_mesh_id = asset_manager->LoadMesh(glass_mesh, "Glass");
@@ -1891,4 +1912,430 @@ void LoadInterference(Scene *scene) {
   scene->Camera()->SetCameraSpeed(100.0f);
 }
 
+void LoadTyndall(Scene *scene) {
+  AssetManager *asset_manager = scene->Renderer()->AssetManager();
+
+  auto make_vertex = [](const glm::vec3 &pos, const glm::vec2 &tex_coord) {
+    Vertex vertex;
+    vertex.position = pos;
+    vertex.tex_coord = tex_coord;
+    return vertex;
+  };
+
+  std::vector<Vertex> vertices;
+  std::vector<uint32_t> indices = {0, 1, 3, 1, 2, 3};
+
+  // light
+  vertices.push_back(make_vertex({343.0f, 548.7f, 227.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({343.0f, 548.7f, 332.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({213.0f, 548.7f, 332.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({213.0f, 548.7f, 227.0f}, {0.0f, 1.0f}));
+  int light_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "LightMesh");
+  Material light_material;
+  light_material.base_color = {0.0f, 0.0f, 0.0f};
+  light_material.emission = {1.0f, 1.0f, 1.0f};
+  light_material.emission_strength = 10.0f;
+  int light_id = scene->CreateEntity();
+  scene->SetEntityMesh(light_id, light_mesh_id);
+  scene->SetEntityMaterial(light_id, light_material);
+
+  // floor
+  vertices.clear();
+  vertices.push_back(make_vertex({552.8f, 0.0f, 0.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 0.0f, 559.2f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({549.6f, 0.0f, 559.2f}, {0.0f, 1.0f}));
+  int floor_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "FloorMesh");
+  Material floor_material;
+  floor_material.base_color = {0.8f, 0.8f, 0.8f};
+  int floor_id = scene->CreateEntity();
+  scene->SetEntityMesh(floor_id, floor_mesh_id);
+  scene->SetEntityMaterial(floor_id, floor_material);
+
+  // ceiling
+  vertices.clear();
+  vertices.push_back(make_vertex({556.0f, 548.8f, 0.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({556.0f, 548.8f, 559.2f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 559.2f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 0.0f}, {0.0f, 1.0f}));
+  int ceiling_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "CeilingMesh");
+  Material ceiling_material;
+  ceiling_material.base_color = {0.8f, 0.8f, 0.8f};
+  int ceiling_id = scene->CreateEntity();
+  scene->SetEntityMesh(ceiling_id, ceiling_mesh_id);
+  scene->SetEntityMaterial(ceiling_id, ceiling_material);
+
+  // back_wall
+  vertices.clear();
+  vertices.push_back(make_vertex({549.6f, 0.0f, 559.2f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 0.0f, 559.2f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 559.2f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({556.0f, 548.8f, 559.2f}, {0.0f, 1.0f}));
+  int back_wall_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "BackWallMesh");
+  Material back_wall_material;
+  back_wall_material.base_color = {0.8f, 0.8f, 0.8f};
+  int back_wall_id = scene->CreateEntity();
+  scene->SetEntityMesh(back_wall_id, back_wall_mesh_id);
+  scene->SetEntityMaterial(back_wall_id, back_wall_material);
+
+  // right_wall
+  vertices.clear();
+  vertices.push_back(make_vertex({0.0f, 0.0f, 559.2f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 0.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 559.2f}, {0.0f, 1.0f}));
+  int right_wall_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "RightWallMesh");
+  Material right_wall_material;
+  right_wall_material.base_color = {0.0, 0.8, 0.0};
+  int right_wall_id = scene->CreateEntity();
+  scene->SetEntityMesh(right_wall_id, right_wall_mesh_id);
+  scene->SetEntityMaterial(right_wall_id, right_wall_material);
+
+  // left_wall
+  vertices.clear();
+  vertices.push_back(make_vertex({552.8f, 0.0f, 0.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({549.6f, 0.0f, 559.2f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({556.0f, 548.8f, 559.2f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({556.0f, 548.8f, 0.0f}, {0.0f, 1.0f}));
+  int left_wall_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "LeftWallMesh");
+  Material left_wall_material;
+  left_wall_material.base_color = {0.8f, 0.0f, 0.0f};
+  int left_wall_id = scene->CreateEntity();
+  scene->SetEntityMesh(left_wall_id, left_wall_mesh_id);
+  scene->SetEntityMaterial(left_wall_id, left_wall_material);
+
+  // short_box
+
+  /*indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
+             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21,
+  23, 21, 22, 23}; vertices.clear(); vertices.push_back(make_vertex({130.0f,
+  165.0f, 65.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f,
+  225.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({240.0f, 165.0f,
+  272.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({290.0f, 165.0f,
+  114.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({290.0f, 0.0f,
+  114.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({290.0f, 165.0f,
+  114.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({240.0f, 165.0f,
+  272.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({240.0f, 0.0f,
+  272.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f},
+  {0.0f, 0.0f})); vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {1.0f,
+  0.0f})); vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f},
+  {1.0f, 1.0f})); vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f},
+  {0.0f, 1.0f})); vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {0.0f,
+  0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f,
+  0.0f})); vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f},
+  {1.0f, 1.0f})); vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f},
+  {0.0f, 1.0f})); vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {0.0f,
+  0.0f})); vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f,
+  0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f},
+  {1.0f, 1.0f})); vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f},
+  {0.0f, 1.0f})); vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f,
+  0.0f})); vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f}, {0.0f, 1.0f}));
+  int short_box_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "ShortBoxMesh");
+  Material short_box_material;
+  short_box_material.base_color = {0.8f, 0.8f, 0.8f};
+  int short_box_id = scene->CreateEntity();
+  scene->SetEntityMesh(short_box_id, short_box_mesh_id);
+  scene->SetEntityMaterial(short_box_id, short_box_material);*/
+
+  // box 2
+  /*indices = {0,  1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,
+             8,  9,  11, 9,  10, 11, 12, 13, 15, 13, 14, 15,
+             16, 17, 19, 17, 18, 19, 20, 21, 23, 21, 22, 23};
+  vertices.clear();
+  vertices.push_back(make_vertex({130.0f, 365.0f, 65.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({82.0f, 365.0f, 225.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({240.0f, 365.0f, 272.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({290.0f, 365.0f, 114.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({290.0f, 200.0f, 114.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({290.0f, 365.0f, 114.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({240.0f, 365.0f, 272.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({240.0f, 200.0f, 272.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({130.0f, 200.0f, 65.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({130.0f, 365.0f, 65.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({290.0f, 365.0f, 114.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({290.0f, 200.0f, 114.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({82.0f, 200.0f, 225.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({82.0f, 365.0f, 225.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({130.0f, 365.0f, 65.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({130.0f, 200.0f, 65.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({240.0f, 200.0f, 272.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({240.0f, 365.0f, 272.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({82.0f, 365.0f, 225.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({82.0f, 200.0f, 225.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({130.0f, 200.0f, 65.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({82.0f, 200.0f, 225.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({240.0f, 200.0f, 272.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({290.0f, 200.0f, 114.0f}, {0.0f, 1.0f}));
+  int short_box2_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "ShortBoxMesh");
+  Material short_box2_material;
+  short_box2_material.base_color = {0.8f, 0.8f, 0.8f};
+  int short_box2_id = scene->CreateEntity();
+  scene->SetEntityMesh(short_box2_id, short_box2_mesh_id);
+  scene->SetEntityMaterial(short_box2_id, short_box2_material);*/
+
+  // tall_box
+
+  indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
+             9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21,
+  23, 21, 22, 23}; 
+  vertices.clear(); 
+  vertices.push_back(make_vertex({423.0f, 400.0f, 247.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({265.0f, 400.0f, 296.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({314.0f, 400.0f, 456.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({472.0f, 400.0f, 406.0f}, {0.0f, 1.0f})); 
+  vertices.push_back(make_vertex({423.0f, 200.0f, 247.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({423.0f, 400.0f, 247.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({472.0f, 400.0f, 406.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({472.0f, 200.0f, 406.0f}, {0.0f, 1.0f})); 
+  vertices.push_back(make_vertex({472.0f, 200.0f, 406.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({472.0f, 400.0f, 406.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({314.0f, 400.0f, 456.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({314.0f, 200.0f, 456.0f}, {0.0f, 1.0f})); 
+  vertices.push_back(make_vertex({314.0f, 200.0f, 456.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({314.0f, 400.0f, 456.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({265.0f, 400.0f, 296.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({265.0f, 200.0f, 296.0f}, {0.0f, 1.0f})); 
+  vertices.push_back(make_vertex({265.0f, 200.0f, 296.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({265.0f, 400.0f, 296.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({423.0f, 400.0f, 247.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({423.0f, 200.0f, 247.0f}, {0.0f, 1.0f})); 
+  vertices.push_back(make_vertex({423.0f, 200.0f, 247.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({265.0f, 200.0f, 296.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({314.0f, 200.0f, 456.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({472.0f, 200.0f, 406.0f}, {0.0f, 1.0f}));
+
+  int tall_box_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "TallBoxMesh");
+  Material tall_box_material;
+  tall_box_material.type = MATERIAL_TYPE_VOLUMETRIC;
+  tall_box_material.sigma_s = glm::vec3{0.01f};
+  tall_box_material.sigma_a = glm::vec3{0.005f};
+  tall_box_material.volumetric_center = glm::vec3{350.0, 300.0f, 380.0f};
+  tall_box_material.volumetric_type = VOLUMETRIC_TYPE_CENTRALIZED;
+  tall_box_material.center_decay = 0.025;
+  int tall_box_id = scene->CreateEntity();
+  scene->SetEntityMesh(tall_box_id, tall_box_mesh_id);
+  scene->SetEntityMaterial(tall_box_id, tall_box_material);
+
+  Mesh parallel_light;
+  parallel_light.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  parallel_light.ThisIsPointLight();
+
+  int parallel_light_mesh_id = asset_manager->LoadMesh(parallel_light, "ParallelLight");
+
+  Material parallel_light_material;
+  parallel_light_material.emission = {1.0f, 1.0f, 0.0f};
+  parallel_light_material.emission_strength = 1000000.0f;
+  parallel_light_material.type = MATERIAL_TYPE_PARALLELLIGHT;
+  parallel_light_material.center = {20.0f, 530.0f, 540.0f};
+  parallel_light_material.direction = {2.0f, -1.0f, -1.0f};
+  parallel_light_material.radius = 10.0f;
+  int parallel_light_id = scene->CreateEntity();
+  scene->SetEntityMesh(parallel_light_id, parallel_light_mesh_id);
+  scene->SetEntityMaterial(parallel_light_id, parallel_light_material);
+
+  Mesh parallel_light2;
+  parallel_light2.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  parallel_light2.ThisIsPointLight();
+
+  int parallel_light_mesh_id2 =
+      asset_manager->LoadMesh(parallel_light2, "ParallelLight2");
+
+  Material parallel_light_material2;
+  parallel_light_material2.emission = {1.0f, 1.0f, 0.0f};
+  parallel_light_material2.emission_strength = 1000000.0f;
+  parallel_light_material2.type = MATERIAL_TYPE_PARALLELLIGHT;
+  parallel_light_material2.center = {50.0f, 515.0f, 525.0f};
+  parallel_light_material2.direction = {2.0f, -1.0f, -1.0f};
+  parallel_light_material2.radius = 10.0f;
+  int parallel_light_id2 = scene->CreateEntity();
+  scene->SetEntityMesh(parallel_light_id2, parallel_light_mesh_id2);
+  scene->SetEntityMaterial(parallel_light_id2, parallel_light_material2);
+
+  Mesh light2;
+  light2.LoadObjFile(FindAssetsFile("mesh/matball.obj"));
+
+  int light2_mesh_id =
+      asset_manager->LoadMesh(light2, "Light2");
+
+  Material light2_material;
+  int light2_id = scene->CreateEntity();
+  scene->SetEntityTransform(
+      light2_id,
+      glm::translate(glm::mat4{1.0f}, glm::vec3{20.0f, 521.0f, 542.0f}) *  
+          glm::scale(glm::mat4{1.0f}, glm::vec3{30.0f})
+  );
+  scene->SetEntityMesh(light2_id, light2_mesh_id);
+  scene->SetEntityMaterial(light2_id, light2_material);
+  
+  // Mesh test, testt;
+  // test.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  // test.ThisIsPointLight();
+
+  // int test_mesh_id = asset_manager->LoadMesh(test, "Cube");
+
+  // Material test_material;
+  // test_material.base_color = {0.0f, 0.0f, 0.8f};
+  // test_material.emission = {1.0f, 1.0f, 1.0f};
+  // test_material.emission_strength = 10.0f;
+  // test_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
+  // test_material.center = {60.0f, 105.0f, 80.0f};
+  // int test_id = scene->CreateEntity();
+  // scene->SetEntityMesh(test_id, test_mesh_id);
+  // scene->SetEntityMaterial(test_id, test_material);
+
+  // testt.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  // testt.ThisIsPointLight(glm::vec3{131.452f, -114.514f, -191.981f});
+  // int testt_mesh_id = asset_manager->LoadMesh(testt, "Cube");
+  // Material testt_material;
+  // testt_material.base_color = {0.0f, 0.0f, 0.8f};
+  // testt_material.emission = {1.0f, 1.0f, 1.0f};
+  // testt_material.emission_strength = 10.0f;
+  // testt_material.type = MATERIAL_TYPE_POINTLIGHT;  // Point Light
+  // testt_material.center = {60.0f, 105.0f, 100.0f};
+  // int testt_id = scene->CreateEntity();
+  // scene->SetEntityMesh(testt_id, testt_mesh_id);
+  // scene->SetEntityMaterial(testt_id, testt_material);
+
+
+  scene->SetEnvmapSettings({0.0f, 0.0f, 0, 0});
+
+  scene->Camera()->SetPosition({278.0f, 273.0f, -800.0f});
+  scene->Camera()->SetEulerAngles({0.0f, glm::radians(180.0f), 0.0f});
+  scene->Camera()->SetFov(glm::radians(40.0f));
+  scene->Camera()->SetFar(2000.0f);
+  scene->Camera()->SetCameraSpeed(100.0f);
+}
+
+void LoadInterferenceBox(Scene *scene) {
+  AssetManager *asset_manager = scene->Renderer()->AssetManager();
+
+  auto make_vertex = [](const glm::vec3 &pos, const glm::vec2 &tex_coord) {
+    Vertex vertex;
+    vertex.position = pos;
+    vertex.tex_coord = tex_coord;
+    return vertex;
+  };
+
+  std::vector<Vertex> vertices;
+  std::vector<uint32_t> indices = {0, 1, 3, 1, 2, 3};
+
+  // floor
+  vertices.clear();
+  vertices.push_back(make_vertex({552.8f, 0.0f, 0.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 0.0f, 559.2f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({549.6f, 0.0f, 559.2f}, {0.0f, 1.0f}));
+  int floor_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "FloorMesh");
+  Material floor_material;
+  int floor_id = scene->CreateEntity();
+  scene->SetEntityMesh(floor_id, floor_mesh_id);
+  scene->SetEntityMaterial(floor_id, floor_material);
+
+  // ceiling
+  vertices.clear();
+  vertices.push_back(make_vertex({556.0f, 548.8f, 0.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({556.0f, 548.8f, 559.2f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 559.2f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 0.0f}, {0.0f, 1.0f}));
+  int ceiling_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "CeilingMesh");
+  Material ceiling_material;
+  int ceiling_id = scene->CreateEntity();
+  scene->SetEntityMesh(ceiling_id, ceiling_mesh_id);
+  scene->SetEntityMaterial(ceiling_id, ceiling_material);
+
+  // back_wall
+  vertices.clear();
+  vertices.push_back(make_vertex({549.6f, 0.0f, 559.2f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 0.0f, 559.2f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 559.2f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({556.0f, 548.8f, 559.2f}, {0.0f, 1.0f}));
+  int back_wall_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "BackWallMesh");
+  Material back_wall_material;
+  int back_wall_id = scene->CreateEntity();
+  scene->SetEntityMesh(back_wall_id, back_wall_mesh_id);
+  scene->SetEntityMaterial(back_wall_id, back_wall_material);
+
+  // right_wall
+  vertices.clear();
+  vertices.push_back(make_vertex({0.0f, 0.0f, 559.2f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 0.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({0.0f, 548.8f, 559.2f}, {0.0f, 1.0f}));
+  int right_wall_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "RightWallMesh");
+  Material right_wall_material;
+  int right_wall_id = scene->CreateEntity();
+  scene->SetEntityMesh(right_wall_id, right_wall_mesh_id);
+  scene->SetEntityMaterial(right_wall_id, right_wall_material);
+
+  // left_wall
+  vertices.clear();
+  vertices.push_back(make_vertex({552.8f, 0.0f, 0.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({549.6f, 0.0f, 559.2f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({556.0f, 548.8f, 559.2f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({556.0f, 548.8f, 0.0f}, {0.0f, 1.0f}));
+  int left_wall_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "LeftWallMesh");
+  Material left_wall_material;
+  int left_wall_id = scene->CreateEntity();
+  scene->SetEntityMesh(left_wall_id, left_wall_mesh_id);
+  scene->SetEntityMaterial(left_wall_id, left_wall_material);
+
+  // Pointlight 1
+  int pointlight1_id = scene->CreateEntity();
+
+  Mesh pointlight1_mesh;
+  pointlight1_mesh.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  pointlight1_mesh.Shift(glm::vec3(-200.0, -200.0, -200.0));
+  int pointlight1_mesh_id =
+      asset_manager->LoadMesh(pointlight1_mesh, "Pointlight1");
+  scene->SetEntityMesh(pointlight1_id, pointlight1_mesh_id);
+
+  Material pointlight1_material;
+  pointlight1_material.emission = {1.0f, 1.0f, 1.0f};
+  pointlight1_material.emission_strength = 1.0f;
+  pointlight1_material.type = MATERIAL_TYPE_POINTLIGHT;
+  pointlight1_material.center = {325.0f, 275.0f, 460.0f};
+  scene->SetEntityMaterial(pointlight1_id, pointlight1_material);
+
+  // Pointlight 2
+  int pointlight2_id = scene->CreateEntity();
+
+  Mesh pointlight2_mesh;
+  pointlight2_mesh.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  pointlight2_mesh.Shift(glm::vec3(-300.0, -300.0, -300.0));
+  int pointlight2_mesh_id =
+      asset_manager->LoadMesh(pointlight2_mesh, "Pointlight2");
+  scene->SetEntityMesh(pointlight2_id, pointlight2_mesh_id);
+
+  Material pointlight2_material;
+  pointlight2_material.emission = {1.0f, 1.0f, 1.0f};
+  pointlight2_material.emission_strength = 1.0f;
+  pointlight2_material.type = MATERIAL_TYPE_POINTLIGHT;
+  pointlight2_material.center = {225.0f, 275.0f, 460.0f};
+  scene->SetEntityMaterial(pointlight2_id, pointlight2_material);
+
+  scene->SetEnvmapSettings({0.0f, 0.0f, 0, 0});
+  scene->Camera()->SetPosition({275.0f, 275.0f, 0.0f});
+  scene->Camera()->SetEulerAngles({0.0f, glm::radians(180.0f), 0.0f});
+  scene->Camera()->SetFov(glm::radians(40.0f));
+  scene->Camera()->SetFar(2000.0f);
+  scene->Camera()->SetCameraSpeed(100.0f);
+}
+
 }  // namespace sparkium
+
