@@ -781,6 +781,198 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(ceilinglightedge_id, ceilinglightedge_mesh_id);
   scene->SetEntityMaterial(ceilinglightedge_id, ceilinglightedge_material);
 
+  // Tea Table
+  int teatable_id = scene->CreateEntity();
+
+  Mesh teatable_mesh;
+  teatable_mesh.LoadObjFile(FindAssetsFile("mesh/living/teatable.obj"));
+  auto teatable_mesh_id =
+      asset_manager->LoadMesh(teatable_mesh, "TeaTableMesh");
+  scene->SetEntityMesh(teatable_id, teatable_mesh_id);
+
+  Material teatable_material;
+  scene->SetEntityMaterial(teatable_id, teatable_material);
+
+  // Sofa Left Lower Cushion
+  int sofaleftlowercushion_id = scene->CreateEntity();
+
+  Mesh sofaleftlowercushion_mesh;
+  sofaleftlowercushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftlowercushion.obj"));
+  auto sofaleftlowercushion_mesh_id =
+      asset_manager->LoadMesh(sofaleftlowercushion_mesh, "SofaLeftLowerCushionMesh");
+  scene->SetEntityMesh(sofaleftlowercushion_id, sofaleftlowercushion_mesh_id);
+
+  Material sofaleftlowercushion_material;
+  scene->SetEntityMaterial(sofaleftlowercushion_id, sofaleftlowercushion_material);
+
+  // Sofa Left Upper Cushion
+  int sofaleftuppercushion_id = scene->CreateEntity();
+
+  Mesh sofaleftuppercushion_mesh;
+  sofaleftuppercushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftuppercushion.obj"));
+  auto sofaleftuppercushion_mesh_id =
+      asset_manager->LoadMesh(sofaleftuppercushion_mesh, "SofaLeftUpperCushionMesh");
+  scene->SetEntityMesh(sofaleftuppercushion_id, sofaleftuppercushion_mesh_id);
+
+  Material sofaleftuppercushion_material;
+  scene->SetEntityMaterial(sofaleftuppercushion_id, sofaleftuppercushion_material);
+
+  // Sofa Right Lower Cushion
+  int sofarightlowercushion_id = scene->CreateEntity();
+
+  Mesh sofarightlowercushion_mesh;
+  sofarightlowercushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightlowercushion.obj"));
+  auto sofarightlowercushion_mesh_id =
+      asset_manager->LoadMesh(sofarightlowercushion_mesh, "SofaRightLowerCushionMesh");
+  scene->SetEntityMesh(sofarightlowercushion_id, sofarightlowercushion_mesh_id);
+
+  Material sofarightlowercushion_material;
+  scene->SetEntityMaterial(sofarightlowercushion_id, sofarightlowercushion_material);
+
+  // Sofa Right Upper Cushion
+  int sofarightuppercushion_id = scene->CreateEntity();
+
+  Mesh sofarightuppercushion_mesh;
+  sofarightuppercushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightuppercushion.obj"));
+  auto sofarightuppercushion_mesh_id =
+      asset_manager->LoadMesh(sofarightuppercushion_mesh, "SofaRightUpperCushionMesh");
+  scene->SetEntityMesh(sofarightuppercushion_id, sofarightuppercushion_mesh_id);
+
+  Material sofarightuppercushion_material;
+  scene->SetEntityMaterial(sofarightuppercushion_id, sofarightuppercushion_material);
+
+  // Sofa Left Arm
+  int sofaleftarm_id = scene->CreateEntity();
+
+  Mesh sofaleftarm_mesh;
+  sofaleftarm_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftarm.obj"));
+  auto sofaleftarm_mesh_id =
+      asset_manager->LoadMesh(sofaleftarm_mesh, "SofaLeftArmMesh");
+  scene->SetEntityMesh(sofaleftarm_id, sofaleftarm_mesh_id);
+
+  Material sofaleftarm_material;
+  scene->SetEntityMaterial(sofaleftarm_id, sofaleftarm_material);
+
+  // Sofa Right Arm
+  int sofarightarm_id = scene->CreateEntity();
+
+  Mesh sofarightarm_mesh;
+  sofarightarm_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightarm.obj"));
+  auto sofarightarm_mesh_id =
+      asset_manager->LoadMesh(sofarightarm_mesh, "SofaRightArmMesh");
+  scene->SetEntityMesh(sofarightarm_id, sofarightarm_mesh_id);
+
+  Material sofarightarm_material;
+  scene->SetEntityMaterial(sofarightarm_id, sofarightarm_material);
+
+  // Sofa Left Side Back Cushions
+  int sofaleftsidebackcushions_id = scene->CreateEntity();
+
+  Mesh sofaleftsidebackcushions_mesh;
+  sofaleftsidebackcushions_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftsidebackcushions.obj"));
+  auto sofaleftsidebackcushions_mesh_id =
+      asset_manager->LoadMesh(sofaleftsidebackcushions_mesh, "SofaLeftSideBackCushionsMesh");
+  scene->SetEntityMesh(sofaleftsidebackcushions_id, sofaleftsidebackcushions_mesh_id);
+
+  Material sofaleftsidebackcushions_material;
+  scene->SetEntityMaterial(sofaleftsidebackcushions_id, sofaleftsidebackcushions_material);
+
+  // Sofa Left Middle Back Cushion
+  int sofaleftmiddlebackcushion_id = scene->CreateEntity();
+
+  Mesh sofaleftmiddlebackcushion_mesh;
+  sofaleftmiddlebackcushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftmiddlebackcushion.obj"));
+  auto sofaleftmiddlebackcushion_mesh_id =
+      asset_manager->LoadMesh(sofaleftmiddlebackcushion_mesh, "SofaLeftMiddleBackCushionMesh");
+  scene->SetEntityMesh(sofaleftmiddlebackcushion_id, sofaleftmiddlebackcushion_mesh_id);
+
+  Material sofaleftmiddlebackcushion_material;
+  scene->SetEntityMaterial(sofaleftmiddlebackcushion_id, sofaleftmiddlebackcushion_material);
+
+  // Sofa Right Side Back Cushions
+  int sofarightsidebackcushions_id = scene->CreateEntity();
+
+  Mesh sofarightsidebackcushions_mesh;
+  sofarightsidebackcushions_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightsidebackcushions.obj"));
+  auto sofarightsidebackcushions_mesh_id =
+      asset_manager->LoadMesh(sofarightsidebackcushions_mesh, "SofaRightSideBackCushionsMesh");
+  scene->SetEntityMesh(sofarightsidebackcushions_id, sofarightsidebackcushions_mesh_id);
+
+  Material sofarightsidebackcushions_material;
+  scene->SetEntityMaterial(sofarightsidebackcushions_id, sofarightsidebackcushions_material);
+
+  // Sofa Right Middle Back Cushion
+  int sofarightmiddlebackcushion_id = scene->CreateEntity();
+
+  Mesh sofarightmiddlebackcushion_mesh;
+  sofarightmiddlebackcushion_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightmiddlebackcushion.obj"));
+  auto sofarightmiddlebackcushion_mesh_id =
+      asset_manager->LoadMesh(sofarightmiddlebackcushion_mesh, "SofaRightMiddleBackCushionMesh");
+  scene->SetEntityMesh(sofarightmiddlebackcushion_id, sofarightmiddlebackcushion_mesh_id);
+
+  Material sofarightmiddlebackcushion_material;
+  scene->SetEntityMaterial(sofarightmiddlebackcushion_id, sofarightmiddlebackcushion_material);
+
+  // Sofa Left Back
+  int sofaleftback_id = scene->CreateEntity();
+
+  Mesh sofaleftback_mesh;
+  sofaleftback_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftback.obj"));
+  auto sofaleftback_mesh_id =
+      asset_manager->LoadMesh(sofaleftback_mesh, "SofaLeftBackMesh");
+  scene->SetEntityMesh(sofaleftback_id, sofaleftback_mesh_id);
+
+  Material sofaleftback_material;
+  scene->SetEntityMaterial(sofaleftback_id, sofaleftback_material);
+
+  // Sofa Right Back
+  int sofarightback_id = scene->CreateEntity();
+
+  Mesh sofarightback_mesh;
+  sofarightback_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightback.obj"));
+  auto sofarightback_mesh_id =
+      asset_manager->LoadMesh(sofarightback_mesh, "SofaRightBackMesh");
+  scene->SetEntityMesh(sofarightback_id, sofarightback_mesh_id);
+
+  Material sofarightback_material;
+  scene->SetEntityMaterial(sofarightback_id, sofarightback_material);
+
+  // Sofa Left Pillows
+  int sofaleftpillows_id = scene->CreateEntity();
+
+  Mesh sofaleftpillows_mesh;
+  sofaleftpillows_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofaleftpillows.obj"));
+  auto sofaleftpillows_mesh_id =
+      asset_manager->LoadMesh(sofaleftpillows_mesh, "SofaLeftPillowsMesh");
+  scene->SetEntityMesh(sofaleftpillows_id, sofaleftpillows_mesh_id);
+
+  Material sofaleftpillows_material;
+  scene->SetEntityMaterial(sofaleftpillows_id, sofaleftpillows_material);
+
+  // Sofa Right Pillows
+  int sofarightpillows_id = scene->CreateEntity();
+
+  Mesh sofarightpillows_mesh;
+  sofarightpillows_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofarightpillows.obj"));
+  auto sofarightpillows_mesh_id =
+      asset_manager->LoadMesh(sofarightpillows_mesh, "SofaRightPillowsMesh");
+  scene->SetEntityMesh(sofarightpillows_id, sofarightpillows_mesh_id);
+
+  Material sofarightpillows_material;
+  scene->SetEntityMaterial(sofarightpillows_id, sofarightpillows_material);
+
+  // Sofa Middle Pillow
+  int sofamiddlepillow_id = scene->CreateEntity();
+
+  Mesh sofamiddlepillow_mesh;
+  sofamiddlepillow_mesh.LoadObjFile(FindAssetsFile("mesh/living/sofamiddlepillow.obj"));
+  auto sofamiddlepillow_mesh_id =
+      asset_manager->LoadMesh(sofamiddlepillow_mesh, "SofaMiddlePillowMesh");
+  scene->SetEntityMesh(sofamiddlepillow_id, sofamiddlepillow_mesh_id);
+
+  Material sofamiddlepillow_material;
+  scene->SetEntityMaterial(sofamiddlepillow_id, sofamiddlepillow_material);
+
   scene->Camera()->SetFar(500.0f);
   scene->Camera()->SetNear(0.05f);
   scene->Camera()->SetPosition({0.0f, 0.1f, 1.2f});
