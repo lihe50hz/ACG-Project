@@ -54,6 +54,8 @@ struct Material {
   
   vec3 velocity;
 
+  float thin;
+
   vec3 center;
   float radius;
   vec3 direction;

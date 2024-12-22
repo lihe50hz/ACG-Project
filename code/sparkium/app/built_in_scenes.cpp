@@ -816,7 +816,7 @@ void LoadLivingScene(Scene *scene) {
   Material ceilinglight_material;
   ceilinglight_material.base_color = {0.3f, 0.3f, 0.3f};
   ceilinglight_material.emission = {1.0f, 1.0f, 1.0f};
-  ceilinglight_material.emission_strength = 100.0f;
+  ceilinglight_material.emission_strength = 200.0f;
   scene->SetEntityMesh(ceilinglight_id, ceilinglight_mesh_id);
   scene->SetEntityMaterial(ceilinglight_id, ceilinglight_material);
 
@@ -1362,7 +1362,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(rightbox_id, rightbox_mesh_id);
 
   Material rightbox_material;
-  rightbox_material.base_color = {0.05f, 0.2f, 0.2f};
+  rightbox_material.base_color = {0.2f, 0.2f, 0.2f};
   scene->SetEntityMaterial(rightbox_id, rightbox_material);
 
   // Box Button
@@ -1703,7 +1703,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMaterial(leftglass1_id, leftglass1_material);
 
   // Left Glass 2 (the other faces)
-  /*int leftglass2_id = scene->CreateEntity();
+  int leftglass2_id = scene->CreateEntity();
 
   Mesh leftglass2_mesh;
   leftglass2_mesh.LoadObjFile(FindAssetsFile("mesh/living/leftglass2.obj"));
@@ -1713,9 +1713,12 @@ void LoadLivingScene(Scene *scene) {
 
   Material leftglass2_material;
   leftglass2_material.type = 2;
+  leftglass2_material.specular = 1.0;
   leftglass2_material.transmission = 1.0;
-  leftglass2_material.ior = 1.2;
-  scene->SetEntityMaterial(leftglass2_id, leftglass2_material);*/
+  leftglass2_material.transmission_roughness = 0.05;
+  leftglass2_material.ior = 1.1;
+  leftglass2_material.thin = 1.0;
+  scene->SetEntityMaterial(leftglass2_id, leftglass2_material);
 
   // Right Glass 1 (the inner content)
   int rightglass1_id = scene->CreateEntity();
@@ -1774,7 +1777,7 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMaterial(rightglass2_id, rightglass2_material);
 
   // Right Glass 3 (other faces of the glass)
-  /*int rightglass3_id = scene->CreateEntity();
+  int rightglass3_id = scene->CreateEntity();
 
   Mesh rightglass3_mesh;
   rightglass3_mesh.LoadObjFile(FindAssetsFile("mesh/living/rightglass3.obj"));
@@ -1784,9 +1787,12 @@ void LoadLivingScene(Scene *scene) {
 
   Material rightglass3_material;
   rightglass3_material.type = 2;
+  rightglass3_material.specular = 1.0;
   rightglass3_material.transmission = 1.0;
-  rightglass3_material.ior = 1.2;
-  scene->SetEntityMaterial(rightglass3_id, rightglass3_material);*/
+  rightglass3_material.transmission_roughness = 0.05;
+  rightglass3_material.ior = 1.1;
+  rightglass3_material.thin = 1.0;
+  scene->SetEntityMaterial(rightglass3_id, rightglass3_material);
 
   scene->Camera()->SetFar(500.0f);
   scene->Camera()->SetNear(0.05f);

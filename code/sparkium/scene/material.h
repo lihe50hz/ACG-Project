@@ -61,7 +61,9 @@ struct Material {
 
   // for motion blur
   glm::vec3 velocity{0.0f}; // the velocity of the object for motion blur
-  float padding_1;
+  
+  // For thin face
+  float thin{0.0f};
   
   // for special light source
   glm::vec3 center{0.0f}; // the center for pointlight and parallel light
