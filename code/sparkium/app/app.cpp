@@ -597,7 +597,8 @@ ImVec2 Application::ImGuiSettingsWindow() {
       render_settings_changed_ |=
           ImGui::ColorEdit3("Emission", &material.emission.r);
       render_settings_changed_ |= ImGui::SliderFloat(
-          "Emission Strength", &material.emission_strength, 0.0f, 100.0f);
+          "Emission Strength", &material.emission_strength, 0.0f, 500.0f,
+          "%.2f", ImGuiSliderFlags_Logarithmic);
 
       render_settings_changed_ |=
           ImGui::SliderFloat("Alpha", &material.alpha, 0.0f, 1.0f);

@@ -348,16 +348,16 @@ vec3 EvaluateDisneyBRDF(Material material, vec3 wo, vec3 wm, vec3 wi, float rela
 }
 
 vec3 EvaluateDisneySpecTransmission(Material material, vec3 wo, vec3 wm, vec3 wi, float ax, float ay, bool thin, float relativeIOR, bool trans){
-    float absDotNL = abs(CosTheta(wi));
-    float absDotNV = abs(CosTheta(wo));
-    float dotHL = dot(wm, wi);
-    float dotHV = dot(wm, wo);
-    float absDotHL = abs(dotHL);
-    float absDotHV = abs(dotHV);
+    //float absDotNL = abs(CosTheta(wi));
+    //float absDotNV = abs(CosTheta(wo));
+    //float dotHL = dot(wm, wi);
+    //float dotHV = dot(wm, wo);
+    //float absDotHL = abs(dotHL);
+    //float absDotHV = abs(dotHV);
 
-    float d = GgxAnisotropicD(wm, ax, ay);
-    float g = SeparableSmithGGXG(wo, wi, ax, ay);
-    float f = FresnelDielectric(dotHV, 1.0, relativeIOR);
+    //float d = GgxAnisotropicD(wm, ax, ay);
+    //float g = SeparableSmithGGXG(wo, wi, ax, ay);
+    //float f = FresnelDielectric(dotHV, 1.0, relativeIOR);
     vec3 color;
 
     if (thin) color = sqrt(material.base_color);
@@ -605,6 +605,7 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
 			break;
 		case MATERIAL_TYPE_PRINCIPLED:
             bool thin = false;
+            if (material.thin > 0.5) thin = true;
             float forwardPdf=0.0;
             float relativeIOR = material.ior;
             if (hit_record.front_face)relativeIOR = 1.0 / relativeIOR;
@@ -630,6 +631,7 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
                 while(length(wi) < 1e-3) wi = SampleDisneySpecTransmission(material, wo, trans, forwardPdf, hit_record.front_face, wm);
                 type = 2;
                 pdf = forwardPdf * pSpecTrans;
+                if (thin) wi = -wo;
 			}
 			else{
                 while(length(wi) < 1e-3) wi = SampleDisneyClearcoat(material, wo, forwardPdf);   
@@ -666,6 +668,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
 			break;
 		case MATERIAL_TYPE_PRINCIPLED:
             bool thin = false;
+            if (material.thin > 0.5) thin = true;
             float relativeIOR;
             if (!hit_record.front_face) relativeIOR = material.ior;
             else relativeIOR = 1.0 / material.ior;
@@ -675,7 +678,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
             mat3 tTNB = transpose(TNB);
             wo = normalize(tTNB * wo);
             wi = normalize(tTNB * wi);
-            if (trans){ 
+            if (trans && !thin){ 
                 wm = normalize(wi + relativeIOR * wo);
                 if (dot(wm, wo)< 0.0) wm = -wm;
             }
