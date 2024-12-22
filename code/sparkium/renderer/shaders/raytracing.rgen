@@ -90,8 +90,8 @@ float GetSin(vec2 phase){
 }
 
 vec2 Time2Vec2(float time, uint depth, uint chan){
-    //vec3 angular_velocity = vec3(0.805, 1.0, 1.212); // relative angular velocity for 3 color light
-    vec3 angular_velocity = vec3(1.0, 1.0, 1.0);
+    vec3 angular_velocity = vec3(0.78, 1.0, 1.252); // relative angular velocity for 3 color light
+    //vec3 angular_velocity = vec3(1.0, 1.0, 1.0);
 	return vec2(cos(time * angular_velocity[chan] + depth * PI),
                 sin(time * angular_velocity[chan] + depth * PI));
 }
