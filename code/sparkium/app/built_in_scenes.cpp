@@ -791,6 +791,11 @@ void LoadLivingScene(Scene *scene) {
   scene->SetEntityMesh(cups_id, cups_mesh_id);
 
   Material cups_material;
+  cups_material.type = 2;
+  cups_material.specular = 1.0;
+  cups_material.transmission = 1.0;
+  cups_material.transmission_roughness = 0.15;
+  cups_material.ior = 1.4;
   scene->SetEntityMaterial(cups_id, cups_material);
 
   // Three Light
