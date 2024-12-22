@@ -1172,6 +1172,257 @@ void LoadLivingScene(Scene *scene) {
   Material boxbutton_material;
   scene->SetEntityMaterial(boxbutton_id, boxbutton_material);
 
+  // Curtain
+  int curtain_id = scene->CreateEntity();
+
+  Mesh curtain_mesh;
+  curtain_mesh.LoadObjFile(FindAssetsFile("mesh/living/curtain.obj"));
+  auto curtain_mesh_id =
+      asset_manager->LoadMesh(curtain_mesh, "CurtainMesh");
+  scene->SetEntityMesh(curtain_id, curtain_mesh_id);
+
+  Material curtain_material;
+  scene->SetEntityMaterial(curtain_id, curtain_material);
+
+  // Right Lights
+  int rightlights_id = scene->CreateEntity();
+
+  Mesh rightlights_mesh;
+  rightlights_mesh.LoadObjFile(FindAssetsFile("mesh/living/rightlights.obj"));
+  auto rightlights_mesh_id =
+      asset_manager->LoadMesh(rightlights_mesh, "RightLightsMesh");
+  scene->SetEntityMesh(rightlights_id, rightlights_mesh_id);
+
+  Material rightlights_material;
+  scene->SetEntityMaterial(rightlights_id, rightlights_material);
+
+  // Short Cupboard
+  int shortcupboard_id = scene->CreateEntity();
+
+  Mesh shortcupboard_mesh;
+  shortcupboard_mesh.LoadObjFile(FindAssetsFile("mesh/living/shortcupboard.obj"));
+  auto shortcupboard_mesh_id =
+      asset_manager->LoadMesh(shortcupboard_mesh, "ShortCupboardMesh");
+  scene->SetEntityMesh(shortcupboard_id, shortcupboard_mesh_id);
+
+  Material shortcupboard_material;
+  scene->SetEntityMaterial(shortcupboard_id, shortcupboard_material);
+
+  // Long Cupboard
+  int longcupboard_id = scene->CreateEntity();
+
+  Mesh longcupboard_mesh;
+  longcupboard_mesh.LoadObjFile(FindAssetsFile("mesh/living/longcupboard.obj"));
+  auto longcupboard_mesh_id =
+      asset_manager->LoadMesh(longcupboard_mesh, "LongCupboardMesh");
+  scene->SetEntityMesh(longcupboard_id, longcupboard_mesh_id);
+
+  Material longcupboard_material;
+  scene->SetEntityMaterial(longcupboard_id, longcupboard_material);
+
+  // Lamp 1 (lamp base)
+  int lamp1_id = scene->CreateEntity();
+
+  Mesh lamp1_mesh;
+  lamp1_mesh.LoadObjFile(FindAssetsFile("mesh/living/lamp1.obj"));
+  auto lamp1_mesh_id =
+      asset_manager->LoadMesh(lamp1_mesh, "Lamp1Mesh");
+  scene->SetEntityMesh(lamp1_id, lamp1_mesh_id);
+
+  Material lamp1_material;
+  lamp1_material.base_color = {1.0f, 0.0f, 0.0f};
+  scene->SetEntityMaterial(lamp1_id, lamp1_material);
+
+  // Lamp 2 (lamp shade)
+  int lamp2_id = scene->CreateEntity();
+
+  Mesh lamp2_mesh;
+  lamp2_mesh.LoadObjFile(FindAssetsFile("mesh/living/lamp2.obj"));
+  auto lamp2_mesh_id =
+      asset_manager->LoadMesh(lamp2_mesh, "Lamp2Mesh");
+  scene->SetEntityMesh(lamp2_id, lamp2_mesh_id);
+
+  Material lamp2_material;
+  lamp2_material.base_color = {0.0f, 1.0f, 0.0f};
+  scene->SetEntityMaterial(lamp2_id, lamp2_material);
+
+  // Sculpture
+  int sculpture_id = scene->CreateEntity();
+
+  Mesh sculpture_mesh;
+  sculpture_mesh.LoadObjFile(FindAssetsFile("mesh/living/sculpture.obj"));
+  auto sculpture_mesh_id =
+      asset_manager->LoadMesh(sculpture_mesh, "SculptureMesh");
+  scene->SetEntityMesh(sculpture_id, sculpture_mesh_id);
+
+  Material sculpture_material;
+  scene->SetEntityMaterial(sculpture_id, sculpture_material);
+
+  // Sculpture Base
+  int sculpturebase_id = scene->CreateEntity();
+
+  Mesh sculpturebase_mesh;
+  sculpturebase_mesh.LoadObjFile(FindAssetsFile("mesh/living/sculpturebase.obj"));
+  auto sculpturebase_mesh_id =
+      asset_manager->LoadMesh(sculpturebase_mesh, "SculptureBaseMesh");
+  scene->SetEntityMesh(sculpturebase_id, sculpturebase_mesh_id);
+
+  Material sculpturebase_material;
+  scene->SetEntityMaterial(sculpturebase_id, sculpturebase_material);
+
+  // Picture Edge
+  int pictureedge_id = scene->CreateEntity();
+
+  Mesh pictureedge_mesh;
+  pictureedge_mesh.LoadObjFile(FindAssetsFile("mesh/living/pictureedge.obj"));
+  auto pictureedge_mesh_id =
+      asset_manager->LoadMesh(pictureedge_mesh, "PictureEdgeMesh");
+  scene->SetEntityMesh(pictureedge_id, pictureedge_mesh_id);
+
+  Material pictureedge_material;
+  scene->SetEntityMaterial(pictureedge_id, pictureedge_material);
+
+  // Picture Center
+  int picturecenter_id = scene->CreateEntity();
+
+  Mesh picturecenter_mesh;
+  picturecenter_mesh.LoadObjFile(FindAssetsFile("mesh/living/picturecenter.obj"));
+  auto picturecenter_mesh_id =
+      asset_manager->LoadMesh(picturecenter_mesh, "PictureCenterMesh");
+  scene->SetEntityMesh(picturecenter_id, picturecenter_mesh_id);
+
+  Texture picturecenter_texture;
+  picturecenter_texture.LoadFromFile(
+      FindAssetsFile("texture/living/picture.jpg"), LDRColorSpace::UNORM);
+  auto picturecenter_texture_id = asset_manager->LoadTexture(
+      picturecenter_texture, "PictureCenterTexture");
+  scene->SetEntityAlbedoTexture(picturecenter_id, picturecenter_texture_id);
+
+  Material picturecenter_material;
+  scene->SetEntityMaterial(picturecenter_id, picturecenter_material);
+
+  // LongMa Spirit 1 (the edge)
+  int LMspirit1_id = scene->CreateEntity();
+
+  Mesh LMspirit1_mesh;
+  LMspirit1_mesh.LoadObjFile(FindAssetsFile("mesh/living/LMspirit1.obj"));
+  auto LMspirit1_mesh_id =
+      asset_manager->LoadMesh(LMspirit1_mesh, "LongMaSpirit1Mesh");
+  scene->SetEntityMesh(LMspirit1_id, LMspirit1_mesh_id);
+
+  Material LMspirit1_material;
+  LMspirit1_material.base_color = {1.0f, 0.0f, 0.0f};
+  scene->SetEntityMaterial(LMspirit1_id, LMspirit1_material);
+
+  // LongMa Spirit 2 (the inner part around the actual picture)
+  int LMspirit2_id = scene->CreateEntity();
+
+  Mesh LMspirit2_mesh;
+  LMspirit2_mesh.LoadObjFile(FindAssetsFile("mesh/living/LMspirit2.obj"));
+  auto LMspirit2_mesh_id =
+      asset_manager->LoadMesh(LMspirit2_mesh, "LongMaSpirit2Mesh");
+  scene->SetEntityMesh(LMspirit2_id, LMspirit2_mesh_id);
+
+  Material LMspirit2_material;
+  LMspirit2_material.base_color = {0.0f, 1.0f, 0.0f};
+  scene->SetEntityMaterial(LMspirit2_id, LMspirit2_material);
+
+  // LongMa Spirit 3 (the main picture)
+  int LMspirit3_id = scene->CreateEntity();
+
+  Mesh LMspirit3_mesh;
+  LMspirit3_mesh.LoadObjFile(FindAssetsFile("mesh/living/LMspirit3.obj"));
+  auto LMspirit3_mesh_id =
+      asset_manager->LoadMesh(LMspirit3_mesh, "LongMaSpirit3Mesh");
+  scene->SetEntityMesh(LMspirit3_id, LMspirit3_mesh_id);
+
+  Texture LMspirit3_texture;
+  LMspirit3_texture.LoadFromFile(
+      FindAssetsFile("texture/living/LMspirit.jpg"), LDRColorSpace::UNORM);
+  auto LMspirit3_texture_id = asset_manager->LoadTexture(
+      LMspirit3_texture, "LongMaSpirit3Texture");
+  scene->SetEntityAlbedoTexture(LMspirit3_id, LMspirit3_texture_id);
+
+  Material LMspirit3_material;
+  scene->SetEntityMaterial(LMspirit3_id, LMspirit3_material);
+
+  // Inner Sculpture
+  int innersculpture_id = scene->CreateEntity();
+
+  Mesh innersculpture_mesh;
+  innersculpture_mesh.LoadObjFile(FindAssetsFile("mesh/living/innersculpture.obj"));
+  auto innersculpture_mesh_id =
+      asset_manager->LoadMesh(innersculpture_mesh, "InnerSculptureMesh");
+  scene->SetEntityMesh(innersculpture_id, innersculpture_mesh_id);
+
+  Material innersculpture_material;
+  scene->SetEntityMaterial(innersculpture_id, innersculpture_material);
+
+  // Left Glass 1 (base, framework, and the back face)
+  int leftglass1_id = scene->CreateEntity();
+
+  Mesh leftglass1_mesh;
+  leftglass1_mesh.LoadObjFile(FindAssetsFile("mesh/living/leftglass1.obj"));
+  auto leftglass1_mesh_id =
+      asset_manager->LoadMesh(leftglass1_mesh, "LeftGlass1Mesh");
+  scene->SetEntityMesh(leftglass1_id, leftglass1_mesh_id);
+
+  Material leftglass1_material;
+  leftglass1_material.base_color = {1.0f, 0.0f, 0.0f};
+  scene->SetEntityMaterial(leftglass1_id, leftglass1_material);
+
+  // Left Glass 2 (the other faces)
+  int leftglass2_id = scene->CreateEntity();
+
+  Mesh leftglass2_mesh;
+  leftglass2_mesh.LoadObjFile(FindAssetsFile("mesh/living/leftglass2.obj"));
+  auto leftglass2_mesh_id =
+      asset_manager->LoadMesh(leftglass2_mesh, "LeftGlass2Mesh");
+  scene->SetEntityMesh(leftglass2_id, leftglass2_mesh_id);
+
+  Material leftglass2_material;
+  leftglass2_material.base_color = {0.0f, 1.0f, 0.0f};
+  scene->SetEntityMaterial(leftglass2_id, leftglass2_material);
+
+  // Right Glass 1 (the inner content)
+  int rightglass1_id = scene->CreateEntity();
+
+  Mesh rightglass1_mesh;
+  rightglass1_mesh.LoadObjFile(FindAssetsFile("mesh/living/rightglass1.obj"));
+  auto rightglass1_mesh_id =
+      asset_manager->LoadMesh(rightglass1_mesh, "RightGlass1Mesh");
+  scene->SetEntityMesh(rightglass1_id, rightglass1_mesh_id);
+
+  Material rightglass1_material;
+  rightglass1_material.base_color = {1.0f, 0.0f, 0.0f};
+  scene->SetEntityMaterial(rightglass1_id, rightglass1_material);
+
+  // Right Glass 2 (the base and the framework)
+  int rightglass2_id = scene->CreateEntity();
+
+  Mesh rightglass2_mesh;
+  rightglass2_mesh.LoadObjFile(FindAssetsFile("mesh/living/rightglass2.obj"));
+  auto rightglass2_mesh_id =
+      asset_manager->LoadMesh(rightglass2_mesh, "RightGlass2Mesh");
+  scene->SetEntityMesh(rightglass2_id, rightglass2_mesh_id);
+
+  Material rightglass2_material;
+  rightglass2_material.base_color = {0.0f, 1.0f, 0.0f};
+  scene->SetEntityMaterial(rightglass2_id, rightglass2_material);
+
+  // Right Glass 3 (other faces of the glass)
+  int rightglass3_id = scene->CreateEntity();
+
+  Mesh rightglass3_mesh;
+  rightglass3_mesh.LoadObjFile(FindAssetsFile("mesh/living/rightglass3.obj"));
+  auto rightglass3_mesh_id =
+      asset_manager->LoadMesh(rightglass3_mesh, "RightGlass3Mesh");
+  scene->SetEntityMesh(rightglass3_id, rightglass3_mesh_id);
+
+  Material rightglass3_material;
+  rightglass3_material.base_color = {0.0f, 0.0f, 1.0f};
+  scene->SetEntityMaterial(rightglass3_id, rightglass3_material);
+
   scene->Camera()->SetFar(500.0f);
   scene->Camera()->SetNear(0.05f);
   scene->Camera()->SetPosition({0.0f, 0.1f, 1.2f});
