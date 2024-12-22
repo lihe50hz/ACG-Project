@@ -624,7 +624,7 @@ void LoadLivingScene(Scene *scene) {
   Material floor_material;
   floor_material.type = 2;
   floor_material.metallic = 0.5;
-  floor_material.roughness = 0.2;
+  floor_material.roughness = 0.05;
   scene->SetEntityMesh(floor_id, floor_mesh_id);
   scene->SetEntityMaterial(floor_id, floor_material);
 
