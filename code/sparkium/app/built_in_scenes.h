@@ -14,4 +14,6 @@ void LoadIslandScene(Scene *scene);
 
 void LoadLivingScene(Scene *scene);
 
+void LoadInterference(Scene *scene);
+
 }  // namespace sparkium

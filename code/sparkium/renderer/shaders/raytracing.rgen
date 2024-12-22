@@ -91,6 +91,7 @@ float GetSin(vec2 phase){
 
 vec2 Time2Vec2(float time, uint depth, uint chan){
     vec3 angular_velocity = vec3(0.805, 1.0, 1.212); // relative angular velocity for 3 color light
+    //vec3 angular_velocity = vec3(1.0, 1.0, 1.0);
 	return vec2(cos(time * angular_velocity[chan] + depth * PI),
                 sin(time * angular_velocity[chan] + depth * PI));
 }
@@ -1186,6 +1187,18 @@ vec3 SampleRay(vec3 origin, vec3 direction, out vec2 phase_r, out vec2 phase_g, 
         TraceRay(origin, direction);
         // If the ray hits nothing (background), sample from the environment map
         if (ray_payload.t == -1.0) {
+            // direct lighting
+            if (scene_settings.enable_wave_effect) {
+                float arg_1 = indirect_light_time + direct_light_time;
+                uint arg_2 = depth + 1 - not_half_loss;
+                phase_r += accumulated_coef.r * color_direct.r * Time2Vec2(arg_1, arg_2, 0);
+                phase_g += accumulated_coef.g * color_direct.g * Time2Vec2(arg_1, arg_2, 1);
+                phase_b += accumulated_coef.b * color_direct.b * Time2Vec2(arg_1, arg_2, 2);
+                accumulated_color = vec3(length(phase_r), length(phase_g), length(phase_b));
+            }
+            else {
+                accumulated_color += accumulated_coef * color_direct;
+            }
             accumulated_color += EnvmapSample(direction) * accumulated_coef;
             break; // End the loop since we've hit the background
         }

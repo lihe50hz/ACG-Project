@@ -10,6 +10,7 @@ BuiltInSceneList() {
   return {
       {"Living Room Scene", LoadLivingScene},
       {"Cornell Box", LoadCornellBox},
+      {"Interference", LoadInterference},
   };
 }
 
@@ -1427,6 +1428,74 @@ void LoadLivingScene(Scene *scene) {
   scene->Camera()->SetNear(0.05f);
   scene->Camera()->SetPosition({0.0f, 0.1f, 1.2f});
   scene->Camera()->SetCameraSpeed(2.0f);
+}
+
+void LoadInterference(Scene *scene) {
+	AssetManager *asset_manager = scene->Renderer()->AssetManager();
+
+  auto make_vertex = [](const glm::vec3 &pos, const glm::vec2 &tex_coord) {
+    Vertex vertex;
+    vertex.position = pos;
+    vertex.tex_coord = tex_coord;
+    return vertex;
+  };
+
+  std::vector<Vertex> vertices;
+  std::vector<uint32_t> indices = {0, 1, 3, 1, 2, 3};
+
+	// Wall
+  int wall_id = scene->CreateEntity();
+
+  vertices.clear();
+  vertices.push_back(make_vertex({0.0f, 0.0f, 1000.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 1000.0f, 0.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({0.0f, 1000.0f, 1000.0f}, {0.0f, 1.0f}));
+  int wall_mesh_id =
+      asset_manager->LoadMesh(Mesh(vertices, indices), "WallMesh");
+  scene->SetEntityMesh(wall_id, wall_mesh_id);
+
+  Material wall_material;
+  scene->SetEntityMaterial(wall_id, wall_material);
+
+	// Pointlight 1
+  int pointlight1_id = scene->CreateEntity();
+
+	Mesh pointlight1_mesh;
+  pointlight1_mesh.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  pointlight1_mesh.ThisIsPointLight(glm::vec3(-200.0, -200.0, -200.0));
+  int pointlight1_mesh_id = asset_manager->LoadMesh(pointlight1_mesh, "Pointlight1");
+  scene->SetEntityMesh(pointlight1_id, pointlight1_mesh_id);
+
+  Material pointlight1_material;
+  pointlight1_material.emission = {1.0f, 1.0f, 1.0f};
+  pointlight1_material.emission_strength = 1.0f;
+  pointlight1_material.type = MATERIAL_TYPE_POINTLIGHT;
+  pointlight1_material.center = {300.0f, 500.0f, 600.0f};
+  scene->SetEntityMaterial(pointlight1_id, pointlight1_material);
+
+	// Pointlight 2
+	int pointlight2_id = scene->CreateEntity();
+
+	Mesh pointlight2_mesh;
+  pointlight2_mesh.LoadObjFile(FindAssetsFile("mesh/cube.obj"));
+  pointlight2_mesh.ThisIsPointLight(glm::vec3(-300.0, -300.0, -300.0));
+  int pointlight2_mesh_id = asset_manager->LoadMesh(pointlight2_mesh, "Pointlight2");
+  scene->SetEntityMesh(pointlight2_id, pointlight2_mesh_id);
+
+  Material pointlight2_material;
+  pointlight2_material.emission = {1.0f, 1.0f, 1.0f};
+  pointlight2_material.emission_strength = 1.0f;
+  pointlight2_material.type = MATERIAL_TYPE_POINTLIGHT;
+  pointlight2_material.center = {300.0f, 500.0f, 400.0f};
+  scene->SetEntityMaterial(pointlight2_id, pointlight2_material);
+
+	scene->SetEnvmapSettings({0.0f, 0.0f, 0, 0});
+	scene->Camera()->SetPosition({500.0f, 500.0f, 500.0f});
+  scene->Camera()->SetEulerAngles({0.0f, glm::radians(180.0f), 0.0f});
+  scene->Camera()->SetFov(glm::radians(40.0f));
+  scene->Camera()->SetFar(2000.0f);
+  scene->Camera()->SetCameraSpeed(100.0f);
 }
 
 }  // namespace sparkium
