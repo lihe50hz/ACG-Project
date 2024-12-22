@@ -386,20 +386,20 @@ void LoadCornellBox(Scene *scene) {
   scene->SetEntityTransform(
       longma_id,
       glm::translate(glm::mat4{1.0f},
-                     glm::vec3{0.0f, 0.0f, 400.0f}) *    // Z·½ÏòÆ½ÒÆ+400
-          glm::scale(glm::mat4{1.0f}, glm::vec3{40.0f})  // ·Å´ó40±¶
+                     glm::vec3{0.0f, 0.0f, 400.0f}) *    // Zï¿½ï¿½ï¿½ï¿½Æ½ï¿½ï¿½+400
+          glm::scale(glm::mat4{1.0f}, glm::vec3{40.0f})  // ï¿½Å´ï¿½40ï¿½ï¿½
   );
   scene->SetEntityTransform(
       longma2_id,
       glm::translate(glm::mat4{1.0f},
-                     glm::vec3{0.0f, 0.0f, 400.0f}) *    // Z·½ÏòÆ½ÒÆ+400
-          glm::scale(glm::mat4{1.0f}, glm::vec3{40.0f})  // ·Å´ó40±¶
+                     glm::vec3{0.0f, 0.0f, 400.0f}) *    // Zï¿½ï¿½ï¿½ï¿½Æ½ï¿½ï¿½+400
+          glm::scale(glm::mat4{1.0f}, glm::vec3{40.0f})  // ï¿½Å´ï¿½40ï¿½ï¿½
   );
   scene->SetEntityTransform(
       longma3_id,
       glm::translate(glm::mat4{1.0f},
-                     glm::vec3{0.0f, 0.0f, 400.0f}) *    // Z·½ÏòÆ½ÒÆ+400
-          glm::scale(glm::mat4{1.0f}, glm::vec3{40.0f})  // ·Å´ó40±¶
+                     glm::vec3{0.0f, 0.0f, 400.0f}) *    // Zï¿½ï¿½ï¿½ï¿½Æ½ï¿½ï¿½+400
+          glm::scale(glm::mat4{1.0f}, glm::vec3{40.0f})  // ï¿½Å´ï¿½40ï¿½ï¿½
   );
 
   */
@@ -685,6 +685,66 @@ void LoadLivingScene(Scene *scene) {
   Material fourchairs_material;
   scene->SetEntityMesh(fourchairs_id, fourchairs_mesh_id);
   scene->SetEntityMaterial(fourchairs_id, fourchairs_material);
+
+  // Two Chairs
+  int twochairs_id = scene->CreateEntity();
+
+  Mesh twochairs_mesh;
+  twochairs_mesh.LoadObjFile(FindAssetsFile("mesh/living/twochairs.obj"));
+  auto twochairs_mesh_id =
+      asset_manager->LoadMesh(twochairs_mesh, "TwoChairsMesh");
+  scene->SetEntityMesh(twochairs_id, twochairs_mesh_id);
+
+  Material twochairs_material;
+  scene->SetEntityMaterial(twochairs_id, twochairs_material);
+
+  // Table Face
+  int tableface_id = scene->CreateEntity();
+
+  Mesh tableface_mesh;
+  tableface_mesh.LoadObjFile(FindAssetsFile("mesh/living/tableface.obj"));
+  auto tableface_mesh_id =
+      asset_manager->LoadMesh(tableface_mesh, "TableFaceMesh");
+  scene->SetEntityMesh(tableface_id, tableface_mesh_id);
+
+  Material tableface_material;
+  scene->SetEntityMaterial(tableface_id, tableface_material);
+
+  // Table Feet
+  int tablefeet_id = scene->CreateEntity();
+
+  Mesh tablefeet_mesh;
+  tablefeet_mesh.LoadObjFile(FindAssetsFile("mesh/living/tablefeet.obj"));
+  auto tablefeet_mesh_id =
+      asset_manager->LoadMesh(tablefeet_mesh, "TableFeetMesh");
+  scene->SetEntityMesh(tablefeet_id, tablefeet_mesh_id);
+
+  Material tablefeet_material;
+  scene->SetEntityMaterial(tablefeet_id, tablefeet_material);
+
+  // Plate
+  int plate_id = scene->CreateEntity();
+
+  Mesh plate_mesh;
+  plate_mesh.LoadObjFile(FindAssetsFile("mesh/living/plate.obj"));
+  auto plate_mesh_id =
+      asset_manager->LoadMesh(plate_mesh, "PlateMesh");
+  scene->SetEntityMesh(plate_id, plate_mesh_id);
+
+  Material plate_material;
+  scene->SetEntityMaterial(plate_id, plate_material);
+
+  // Cups
+  int cups_id = scene->CreateEntity();
+
+  Mesh cups_mesh;
+  cups_mesh.LoadObjFile(FindAssetsFile("mesh/living/cups.obj"));
+  auto cups_mesh_id =
+      asset_manager->LoadMesh(cups_mesh, "CupsMesh");
+  scene->SetEntityMesh(cups_id, cups_mesh_id);
+
+  Material cups_material;
+  scene->SetEntityMaterial(cups_id, cups_material);
 
   // Ceiling Light
   int ceilinglight_id = scene->CreateEntity();
