@@ -8,11 +8,11 @@ namespace sparkium {
 std::vector<std::pair<std::string, std::function<void(Scene *scene)>>>
 BuiltInSceneList() {
   return {
-      {"Interference Box", LoadInterferenceBox},
       {"Tyndall Effect", LoadTyndall},
-      {"Living Room Scene", LoadLivingScene},
-      {"Cornell Box", LoadCornellBox},
       {"Interference", LoadInterference},
+      {"Living Room Scene", LoadLivingScene},
+      {"Interference Box", LoadInterferenceBox},
+      {"Cornell Box", LoadCornellBox},
   };
 }
 
@@ -810,7 +810,7 @@ void LoadLivingScene(Scene *scene) {
   Material threelight_material;
   threelight_material.base_color = {0.3f, 0.3f, 0.3f};
   threelight_material.emission = {1.0f, 1.0f, 0.0f};
-  threelight_material.emission_strength = 10000.0f;
+  threelight_material.emission_strength = 1000.0f;
   scene->SetEntityMesh(threelight_id, threelight_mesh_id);
   scene->SetEntityMaterial(threelight_id, threelight_material);
 
@@ -1157,6 +1157,15 @@ void LoadLivingScene(Scene *scene) {
 
   // Television Center
   int televisioncenter_id = scene->CreateEntity();
+
+  /*Texture televisioncenter_texture;
+  televisioncenter_texture.LoadFromFile(
+      FindAssetsFile("texture/living/486.jpg"),
+      LDRColorSpace::UNORM);
+  auto televisioncenter_texture_id = asset_manager->LoadTexture(
+      televisioncenter_texture, "TelevisionTexture");
+  scene->SetEntityAlbedoTexture(televisioncenter_id,
+                                televisioncenter_texture_id);*/
 
   Mesh televisioncenter_mesh;
   televisioncenter_mesh.LoadObjFile(FindAssetsFile("mesh/living/televisioncenter.obj"));
@@ -1599,7 +1608,7 @@ void LoadLivingScene(Scene *scene) {
 
   Texture picturecenter_texture;
   picturecenter_texture.LoadFromFile(
-      FindAssetsFile("texture/living/picture.jpg"), LDRColorSpace::UNORM);
+      FindAssetsFile("texture/living/bochi.jpg"), LDRColorSpace::UNORM);
   auto picturecenter_texture_id = asset_manager->LoadTexture(
       picturecenter_texture, "PictureCenterTexture");
   scene->SetEntityAlbedoTexture(picturecenter_id, picturecenter_texture_id);
@@ -1645,7 +1654,7 @@ void LoadLivingScene(Scene *scene) {
 
   Texture LMspirit3_texture;
   LMspirit3_texture.LoadFromFile(
-      FindAssetsFile("texture/living/LMspirit.jpg"), LDRColorSpace::UNORM);
+      FindAssetsFile("texture/living/mygo.jpg"), LDRColorSpace::UNORM);
   auto LMspirit3_texture_id = asset_manager->LoadTexture(
       LMspirit3_texture, "LongMaSpirit3Texture");
   scene->SetEntityAlbedoTexture(LMspirit3_id, LMspirit3_texture_id);
@@ -1844,16 +1853,25 @@ void LoadInterference(Scene *scene) {
   int wall_id = scene->CreateEntity();
 
   vertices.clear();
-  vertices.push_back(make_vertex({0.0f, 0.0f, 1000.0f}, {0.0f, 0.0f}));
-  vertices.push_back(make_vertex({0.0f, 0.0f, 0.0f}, {1.0f, 0.0f}));
-  vertices.push_back(make_vertex({0.0f, 1000.0f, 0.0f}, {1.0f, 1.0f}));
-  vertices.push_back(make_vertex({0.0f, 1000.0f, 1000.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({0.0f, 450.0f, 550.0f}, {0.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 450.0f, 450.0f}, {1.0f, 0.0f}));
+  vertices.push_back(make_vertex({0.0f, 550.0f, 450.0f}, {1.0f, 1.0f}));
+  vertices.push_back(make_vertex({0.0f, 550.0f, 550.0f}, {0.0f, 1.0f}));
   int wall_mesh_id =
       asset_manager->LoadMesh(Mesh(vertices, indices), "WallMesh");
   scene->SetEntityMesh(wall_id, wall_mesh_id);
 
   Material wall_material;
+  wall_material.base_color = glm::vec3{0.3f, 0.3f, 0.3f};
   scene->SetEntityMaterial(wall_id, wall_material);
+
+  Texture wall_texture;
+  wall_texture.LoadFromFile(
+      FindAssetsFile("texture/living/furina.jpg"),
+      LDRColorSpace::UNORM);
+  auto wall_texture_id =
+      asset_manager->LoadTexture(wall_texture, "WallTexture");
+  scene->SetEntityAlbedoTexture(wall_id, wall_texture_id);
 
 	// Pointlight 1
   int pointlight1_id = scene->CreateEntity();
@@ -1898,10 +1916,10 @@ void LoadInterference(Scene *scene) {
 
   Material glass_material;
   glass_material.type = MATERIAL_TYPE_PRINCIPLED;
-	glass_material.specular = 1.0f;
+  glass_material.specular = 1.0f;
   glass_material.transmission = 1.0f;
-	glass_material.transmission_roughness= 0.01f;
-	glass_material.ior = 1.1;
+  glass_material.transmission_roughness= 0.01f;
+  glass_material.ior = 1.1;
   scene->SetEntityMaterial(glass_id, glass_material);
 
 	scene->SetEnvmapSettings({0.0f, 0.0f, 0, 0});
@@ -2010,32 +2028,34 @@ void LoadTyndall(Scene *scene) {
   scene->SetEntityMesh(left_wall_id, left_wall_mesh_id);
   scene->SetEntityMaterial(left_wall_id, left_wall_material);
 
-  // short_box
+  //short_box
 
-  /*indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
+  indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
              9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21,
-  23, 21, 22, 23}; vertices.clear(); vertices.push_back(make_vertex({130.0f,
-  165.0f, 65.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f,
-  225.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({240.0f, 165.0f,
-  272.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({290.0f, 165.0f,
-  114.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({290.0f, 0.0f,
-  114.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({290.0f, 165.0f,
-  114.0f}, {1.0f, 0.0f})); vertices.push_back(make_vertex({240.0f, 165.0f,
-  272.0f}, {1.0f, 1.0f})); vertices.push_back(make_vertex({240.0f, 0.0f,
-  272.0f}, {0.0f, 1.0f})); vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f},
-  {0.0f, 0.0f})); vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {1.0f,
-  0.0f})); vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f},
-  {1.0f, 1.0f})); vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f},
-  {0.0f, 1.0f})); vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {0.0f,
-  0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f,
-  0.0f})); vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f},
-  {1.0f, 1.0f})); vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f},
-  {0.0f, 1.0f})); vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {0.0f,
-  0.0f})); vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f,
-  0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f},
-  {1.0f, 1.0f})); vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f},
-  {0.0f, 1.0f})); vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f,
-  0.0f})); vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {1.0f, 0.0f}));
+  23, 21, 22, 23}; 
+  vertices.clear(); 
+  vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f}, {0.0f, 1.0f})); 
+  vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {0.0f, 1.0f})); 
+  vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({290.0f, 165.0f, 114.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f}, {0.0f, 1.0f}));
+  vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({130.0f, 165.0f, 65.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f, 1.0f})); 
+  vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({240.0f, 165.0f, 272.0f}, {1.0f, 0.0f})); 
+  vertices.push_back(make_vertex({82.0f, 165.0f, 225.0f}, {1.0f, 1.0f})); 
+  vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {0.0f, 1.0f})); 
+  vertices.push_back(make_vertex({130.0f, 0.0f, 65.0f}, {0.0f, 0.0f})); 
+  vertices.push_back(make_vertex({82.0f, 0.0f, 225.0f}, {1.0f, 0.0f}));
   vertices.push_back(make_vertex({240.0f, 0.0f, 272.0f}, {1.0f, 1.0f}));
   vertices.push_back(make_vertex({290.0f, 0.0f, 114.0f}, {0.0f, 1.0f}));
   int short_box_mesh_id =
@@ -2044,7 +2064,7 @@ void LoadTyndall(Scene *scene) {
   short_box_material.base_color = {0.8f, 0.8f, 0.8f};
   int short_box_id = scene->CreateEntity();
   scene->SetEntityMesh(short_box_id, short_box_mesh_id);
-  scene->SetEntityMaterial(short_box_id, short_box_material);*/
+  scene->SetEntityMaterial(short_box_id, short_box_material);
 
   // box 2
   /*indices = {0,  1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,
