@@ -64,15 +64,37 @@ layout(set = 4,
        binding = 1,
        rgba32f) uniform image2D accumulated_radiance_image;
 
-layout(set = 4, binding = 2, r32f) uniform image2D accumulated_weight_image;
+layout(set = 4, binding = 2, rgba32f) uniform image2D accumulated_weight_image;
 
-layout(set = 4, binding = 3, rgba32f) uniform image2D raw_result_image;
+layout(set = 4, binding = 3, rgba32f) uniform image2D accumulated_phase_gb_image;
+
+layout(set = 4, binding = 4, rgba32f) uniform image2D raw_result_image;
 
 layout(location = 0) rayPayloadEXT RayPayload ray_payload;
 
 #include "hit_record.glsl"
 #include "shadow_ray.glsl"
 #include "trace_ray.glsl"
+
+// Get Cos and Sin value from a vec2
+float GetCos(vec2 phase){
+    if (length(phase) < 1e-5) return 0.0;
+    vec2 normalized_phase = normalize(phase);
+    return normalized_phase.x;
+}
+
+float GetSin(vec2 phase){
+    if (length(phase) < 1e-5) return 0.0;
+    vec2 normalized_phase = normalize(phase);
+    return normalized_phase.y;
+}
+
+vec2 Time2Vec2(float time, uint depth, uint chan){
+    //vec3 angular_velocity = vec3(0.78, 1.0, 1.252); // relative angular velocity for 3 color light
+    vec3 angular_velocity = vec3(1.0, 1.0, 1.0);
+	return vec2(cos(time * angular_velocity[chan] + depth * PI),
+                sin(time * angular_velocity[chan] + depth * PI));
+}
 
 float CosTheta(vec3 w){
     return w.y;
@@ -326,16 +348,16 @@ vec3 EvaluateDisneyBRDF(Material material, vec3 wo, vec3 wm, vec3 wi, float rela
 }
 
 vec3 EvaluateDisneySpecTransmission(Material material, vec3 wo, vec3 wm, vec3 wi, float ax, float ay, bool thin, float relativeIOR, bool trans){
-    float absDotNL = abs(CosTheta(wi));
-    float absDotNV = abs(CosTheta(wo));
-    float dotHL = dot(wm, wi);
-    float dotHV = dot(wm, wo);
-    float absDotHL = abs(dotHL);
-    float absDotHV = abs(dotHV);
+    //float absDotNL = abs(CosTheta(wi));
+    //float absDotNV = abs(CosTheta(wo));
+    //float dotHL = dot(wm, wi);
+    //float dotHV = dot(wm, wo);
+    //float absDotHL = abs(dotHL);
+    //float absDotHV = abs(dotHV);
 
-    float d = GgxAnisotropicD(wm, ax, ay);
-    float g = SeparableSmithGGXG(wo, wi, ax, ay);
-    float f = FresnelDielectric(dotHV, 1.0, relativeIOR);
+    //float d = GgxAnisotropicD(wm, ax, ay);
+    //float g = SeparableSmithGGXG(wo, wi, ax, ay);
+    //float f = FresnelDielectric(dotHV, 1.0, relativeIOR);
     vec3 color;
 
     if (thin) color = sqrt(material.base_color);
@@ -404,19 +426,19 @@ void CalculateLobePdfs(Material material, out float pMetallic, out float pDiffus
 }
 
 vec3 SampleHemisphere(vec3 normal) {
-    // Randomly sample spherical coordinates
+    // Randomly sample spherical coordinates with Y as normal!
     float xi1 = RandomFloat();
     float xi2 = RandomFloat();
 
     // Convert from spherical to Cartesian coordinates
     // theta is the angle from the normal
-    float theta = acos(sqrt(1.0 - xi1));  // theta �� [0, pi]
-    float phi = 2.0 * PI * xi2;            // phi �� [0, 2*pi]
+    float theta = acos(sqrt(1.0 - xi1));  // theta [0, pi]
+    float phi = 2.0 * PI * xi2;            // phi [0, 2*pi]
 
     // Spherical to Cartesian conversion
     float x = sin(theta) * cos(phi);
-    float y = sin(theta) * sin(phi);
-    float z = cos(theta);
+    float y = cos(theta);
+    float z = sin(theta) * sin(phi);
 
     // Create the hemisphere direction based on the surface normal
     vec3 sampledDirection = vec3(x, y, z);
@@ -558,16 +580,24 @@ vec3 SampleDisneyClearcoat(Material material, vec3 wo, out float forwardPdf){
     return wi;
 }
 
+float ComputeHG(float g, float cos_theta) {
+    float denom = 1 + g * g + 2 * g * cos_theta;
+    return 1.0f / (PI * 4) * (1 - g * g) / (denom * sqrt(denom));
+}
+
 // For overllall Sampling and Evaluation
 uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, out vec3 wi, out float pdf, out bool trans) {
     uint type=0;
     wi = vec3(0.0);
     wm = vec3(0.0);
     trans = false;
+    mat3 TNB = mat3(hit_record.tangent, hit_record.shading_normal, hit_record.bitangent);
+    mat3 tTNB = transpose(TNB);
     switch (material.type){
 		case MATERIAL_TYPE_LAMBERTIAN:
-			wi = SampleHemisphere(material.normal);
-            pdf = max(1e-3, abs(dot(wo, material.normal))) * max(1e-3, abs(dot(wi, material.normal))) / PI;
+			wi = SampleHemisphere(vec3(0.0, 1.0, 0.0));
+            wi = normalize(TNB * wi);
+            pdf = 1.0 / PI;
 			break;
 		case MATERIAL_TYPE_SPECULAR:
 			wi = reflect(wo, material.normal);
@@ -575,13 +605,12 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
 			break;
 		case MATERIAL_TYPE_PRINCIPLED:
             bool thin = false;
+            if (material.thin > 0.5) thin = true;
             float forwardPdf=0.0;
             float relativeIOR = material.ior;
             if (hit_record.front_face)relativeIOR = 1.0 / relativeIOR;
             
             wo = -wo;
-            mat3 TNB = mat3(hit_record.tangent, hit_record.shading_normal, hit_record.bitangent);
-            mat3 tTNB = transpose(TNB);
             wo = normalize(tTNB * wo);
             
             float pMetallic, pDiffuse, pSpecTrans, pClearcoat;
@@ -602,6 +631,7 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
                 while(length(wi) < 1e-3) wi = SampleDisneySpecTransmission(material, wo, trans, forwardPdf, hit_record.front_face, wm);
                 type = 2;
                 pdf = forwardPdf * pSpecTrans;
+                if (thin) wi = -wo;
 			}
 			else{
                 while(length(wi) < 1e-3) wi = SampleDisneyClearcoat(material, wo, forwardPdf);   
@@ -615,6 +645,10 @@ uint SampleAll(HitRecord hit_record, Material material, vec3 wo, out vec3 wm, ou
             pdf = 1.0;
             break;
         case MATERIAL_TYPE_POINTLIGHT:
+            wi = wo;
+            pdf = 1.0;
+            break;
+        case MATERIAL_TYPE_PARALLELLIGHT:
             wi = wo;
             pdf = 1.0;
             break;
@@ -634,6 +668,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
 			break;
 		case MATERIAL_TYPE_PRINCIPLED:
             bool thin = false;
+            if (material.thin > 0.5) thin = true;
             float relativeIOR;
             if (!hit_record.front_face) relativeIOR = material.ior;
             else relativeIOR = 1.0 / material.ior;
@@ -643,7 +678,7 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
             mat3 tTNB = transpose(TNB);
             wo = normalize(tTNB * wo);
             wi = normalize(tTNB * wi);
-            if (trans){ 
+            if (trans && !thin){ 
                 wm = normalize(wi + relativeIOR * wo);
                 if (dot(wm, wo)< 0.0) wm = -wm;
             }
@@ -681,28 +716,165 @@ vec3 EvaluateAll(HitRecord hit_record, Material material, vec3 wo, vec3 wm, vec3
             }
             break;
         case MATERIAL_TYPE_VOLUMETRIC:
-            return vec3(1.0);
+            return vec3(ComputeHG(material.g, dot(wi, wo)) / pdf);
             break;
         case MATERIAL_TYPE_POINTLIGHT:
+            return vec3(1.0);
+            break;
+        case MATERIAL_TYPE_PARALLELLIGHT:
             return vec3(1.0);
             break;
 	}
     return vec3(0.0);
 }
 
-vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, vec3 wo, vec3 wm, float P_RR, uint type, out float pdf, bool trans){
+// sample according to exponential distribution
+float SampleExponential(float sigma) {
+    float u = RandomFloat();
+    return -log(u) / sigma;
+}
+
+// get the sigma_a and sigma_s for the given point according to the volumetric type
+void GetVolPara(Material material, vec3 point, out vec3 sigma_a, out vec3 sigma_s) {
+    switch (material.volumetric_type) {
+        case VOLUMETRIC_TYPE_HOMOGENEOUS: // homogeneous media
+            sigma_a = material.sigma_a;
+            sigma_s = material.sigma_s;
+            break;
+        case VOLUMETRIC_TYPE_CENTRALIZED: // inhomogeneous centralized media
+            float decay = exp(-material.center_decay * length(point - material.volumetric_center));
+            sigma_a = material.sigma_a * decay;
+            sigma_s = material.sigma_s * decay;
+            break;
+    }
+}
+
+// normalize a vec3 in chromatic case
+vec3 ChromaticNormalize(vec3 f) {
+    if (length(f) < 1e-4)
+        return f;
+    return f * 3 / (f.x + f.y + f.z);
+}
+
+// compute the transmittance along the path
+// "dist" is the distance of the path
+// time is the light distance for interference
+vec3 ComputeTransmittance(vec3 origin, vec3 direction, float dist, out float time) {
+    vec3 trans = vec3(1.0f);
+    int state = 0; // 0 for outside, 1 for volumetric, 2 for glass
+    time = 0.0;
+
+    while (true) {
+        TraceRay(origin, direction);
+        HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
+        Material material = GetMaterial(hit_record);
+
+        if (state == 0) {
+            time += min(ray_payload.t, dist);
+            // arrive at the target object
+            if (ray_payload.t > dist - 1e-3)
+                return trans;
+            
+            // enter volumetric object
+            if (material.type == MATERIAL_TYPE_VOLUMETRIC) {
+                state = 1;
+                origin = hit_record.position;
+                dist -= ray_payload.t;
+                continue;
+            }
+            // enter glass
+            else if (material.type == MATERIAL_TYPE_PRINCIPLED && material.transmission > 0.0) {
+                state = 2;
+                origin = hit_record.position;
+                dist -= ray_payload.t;
+                continue;
+            // blocked
+            } else {
+                time = 0.0;
+                return vec3(0.0);
+            }
+        } 
+        else if (state == 2) {
+            trans *= vec3(material.transmission * material.base_color);
+            time += min(ray_payload.t, dist) * material.ior;
+            if (ray_payload.t > dist - 1e-3)
+                return trans;
+
+            state = 0;
+            origin = hit_record.position;
+            dist -= ray_payload.t;
+            continue;
+        }
+
+        // accumulate transmittance in the volumetric object
+        float tar_t = min(ray_payload.t, dist);  // maximal distance to transmit
+        time += tar_t;
+        bool tar_inside = (ray_payload.t > dist - 1e-3);  // whether the target is in the object
+        // while loop for sampling t in the volumetric object
+        while (true) {
+            vec3 sigma_maj = material.sigma_a + material.sigma_s;
+            // the pdf when exiting the object
+            vec3 pdf_exit = ChromaticNormalize(exp(-sigma_maj * tar_t));
+            // randomly select a channel
+            uint chan = RandomUint() % 3;
+            
+            // do not set absorption or scattering, directly exit the object
+            if (sigma_maj[chan] < 1e-4) {
+                trans *= pdf_exit;
+                if (tar_inside)  // arrive at the target
+                    return trans;
+                // leave the object
+                state = 0;
+                origin = hit_record.position;
+                dist -= tar_t;  // update distance
+                break;
+            }
+
+            // sample t using exponential distribution
+            float t_sp = SampleExponential(sigma_maj[chan]);
+            vec3 sample_point = origin + direction * t_sp;
+
+            // exit the object
+            if (t_sp > tar_t) {
+                trans *= pdf_exit;
+                if (tar_inside)  // arrive at the target
+                    return trans;
+                // leave the object
+                state = 0;
+                origin = hit_record.position;
+                dist -= tar_t;  // update distance
+                break;
+            }
+            
+            // compute the sigma_a, sigma_s for sampled point
+            vec3 sigma_a = vec3(0.0f);
+            vec3 sigma_s = vec3(0.0f);
+            GetVolPara(material, sample_point, sigma_a, sigma_s);
+            vec3 sigma_n = sigma_maj - sigma_a - sigma_s;
+
+            // compute the accumulated transmittance for this sample point
+            vec3 tmp = sigma_maj * exp(-sigma_maj * t_sp);
+            trans *= sigma_n * exp(-sigma_maj * t_sp) * 3.0f / (tmp.x + tmp.y + tmp.z);
+            
+            // update distance
+            tar_t -= t_sp;
+            dist -= t_sp;
+        }
+    }
+}
+
+vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, vec3 wo, vec3 wm, float P_RR, uint type, out float pdf, bool trans, out float time){
     // Compute the direct lighting
     vec3 color_direct = vec3(0.0);
     vec3 color_direct_direction = vec3(0.0);
     pdf = 0.0;
-    if (!hit_record.front_face){
-        return color_direct;
-    }
+    if (!hit_record.front_face && material.type != MATERIAL_TYPE_VOLUMETRIC) return color_direct;
     // Define metadata
     float entity_last_cdf = 0.0;
     uint sampled_entity_id = -1;
     uint sampled_triangle_id = -1;
     float sampled_probability = 1.0;
+    time = 0.0;
 
     // According to the cdf, sample an entity
     float random_number = RandomFloat();
@@ -727,16 +899,20 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
     // If we have sampled an entity, sample a triangle
     random_number = RandomFloat();
     if (sampled_entity_id != -1){
-        // Deal with point light
         Material light_material = materials[sampled_entity_id];
+        // Deal with point light
         if (light_material.type == MATERIAL_TYPE_POINTLIGHT){
             vec3 sampled_point = light_material.center;
             vec3 light_direction = origin - sampled_point;
             float light_distance = length(light_direction);
             light_direction = normalize(light_direction);
             color_direct_direction = normalize(sampled_point - origin);
-            TraceRay(sampled_point, light_direction);
-            if (ray_payload.t > light_distance - 1e-3){
+
+            // get the transmittance along the path
+            vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance, time);
+
+            // not blocked
+            if (length(transmittance) > 1e-4){
                 // Origin
                 Material origin_material = material;
                 vec3 origin_normal = origin_material.normal;
@@ -746,11 +922,77 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 
 			    // Compute the direct lighting and right normals
                 float origin_cos = max(1e-3, abs(dot(origin_normal, light_direction)));
+                if (material.type == MATERIAL_TYPE_VOLUMETRIC) {
+                    origin_cos = 1.0f;
+                }
                 vec3 light_intrinsic = emission * emission_strength;
 			    float light_attenuation = origin_cos / light_distance;
                 pdf = sampled_probability / light_attenuation;
-			    color_direct = light_intrinsic * 10000;
+			    color_direct = light_intrinsic * transmittance * 10000;
 		    }
+            // blocked
+            else {
+                color_direct = vec3(0.0f);
+            }
+
+            // Return the direct lighting
+            if (length(color_direct) > 1e-6) // Sampled direct light is not none
+                return color_direct * EvaluateAll(hit_record, material, wo, wm, color_direct_direction, P_RR, pdf, type, trans);
+            return vec3(0.0);
+        } 
+        // Deal with parallel light
+        else if (light_material.type == MATERIAL_TYPE_PARALLELLIGHT) {
+            // basic parameters
+            vec3 light_center = light_material.center;
+            vec3 normal = normalize(light_material.direction);
+            float radius = light_material.radius;
+            vec3 skew_direction = origin - light_center;
+
+            // at the back of the light
+            if (dot(normal, skew_direction) < 0) {
+                return vec3(0.0f);
+            }
+
+            // compute the projection
+            vec3 light_direction = normal * dot(skew_direction, normal);
+            vec3 sampled_point = origin - light_direction;
+
+            // projection point too far away from center
+            if (length(sampled_point - light_center) > radius) {
+                return vec3(0.0f);
+            }
+
+            float light_distance = length(light_direction);
+            light_direction = normalize(light_direction);
+            color_direct_direction = normalize(sampled_point - origin);
+
+            // get the transmittance along the path
+            vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance, time);
+
+            // not blocked
+            if (length(transmittance) > 1e-4){
+                // Origin
+                Material origin_material = material;
+                vec3 origin_normal = origin_material.normal;
+                // Light
+                vec3 emission = light_material.emission;
+                float emission_strength = light_material.emission_strength;
+
+			    // Compute the direct lighting and right normals
+                float origin_cos = max(1e-3, abs(dot(origin_normal, light_direction)));
+                if (material.type == MATERIAL_TYPE_VOLUMETRIC) {
+                    origin_cos = 1.0f;
+                }
+                vec3 light_intrinsic = emission * emission_strength;
+			    float light_attenuation = origin_cos;
+                pdf = sampled_probability / light_attenuation;
+			    color_direct = light_intrinsic * transmittance * 200;
+		    }
+            // blocked
+            else {
+                color_direct = vec3(0.0f);
+            }
+
             // Return the direct lighting
             if (length(color_direct) > 1e-6) // Sampled direct light is not none
                 return color_direct * EvaluateAll(hit_record, material, wo, wm, color_direct_direction, P_RR, pdf, type, trans);
@@ -801,10 +1043,12 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
         float light_distance = length(light_direction);
         light_direction = normalize(light_direction);
         color_direct_direction = normalize(sampled_point - origin);
-        TraceRay(sampled_point, light_direction);
 
-        if (ray_payload.t > light_distance - 1e-3){
-            
+        // get the transmittance along the path
+        vec3 transmittance = ComputeTransmittance(sampled_point, light_direction, light_distance, time);
+
+        // not blocked
+        if (length(transmittance) > 1e-4){
             // Origin
             Material origin_material = material;
             vec3 origin_normal = origin_material.normal;
@@ -819,11 +1063,18 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 			        
 			float light_cos = max(1e-3, abs(dot(light_normal, light_direction)));
             float origin_cos = max(1e-3, abs(dot(origin_normal, light_direction)));
+            if (material.type == MATERIAL_TYPE_VOLUMETRIC) {
+                origin_cos = 1.0f;
+            }
             vec3 light_intrinsic = emission * emission_strength;
 			float light_attenuation = light_cos * origin_cos / (light_distance * light_distance);
             pdf = sampled_probability / light_area / light_attenuation;
-			color_direct = light_intrinsic;
+			color_direct = light_intrinsic * transmittance;
 		}
+        // blocked
+        else {
+            color_direct = vec3(0.0f);
+        }
     }
 
     // Return the direct lighting
@@ -833,10 +1084,16 @@ vec3 EvaluateDirectLight(HitRecord hit_record, vec3 origin, Material material, v
 
 }
 
-// sample according to exponential distribution
-float SampleExponential(float sigma) {
-    float u = RandomFloat();
-    return -log(u) / sigma;
+// handle division when computing probability in chromatic case
+vec3 HandleDivide(vec3 a, vec3 b) {
+    vec3 res = vec3(0.0f);
+    for (int i = 0; i < 3; i++) {
+        if (b[i] == 0)
+            res[i] = 0.5f;
+        else 
+            res[i] = a[i] / b[i];
+    }
+    return res;
 }
 
 // sample according to Henyey-Greenstein distribution
@@ -880,7 +1137,8 @@ vec2 SampleCircle(float radius) {
     return vec2(r * cos(theta), r * sin(theta));
 }
 
-vec3 SampleRay(vec3 origin, vec3 direction) {
+// phase r,g,b is the vector (A cos theta, A sin theta)
+vec3 SampleRay(vec3 origin, vec3 direction, out vec2 phase_r, out vec2 phase_g, out vec2 phase_b) {
     // Overall Coefficient
     float P_RR = 0.9;
     vec3 accumulated_color = vec3(0.0); 
@@ -896,6 +1154,12 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
     float color_indirect_pdf; 
     vec3 color_indirect;
 
+    // Wave Effect
+    float indirect_light_time = 0.0, direct_light_time = 0.0;
+    phase_r = vec2(0.0, 0.0);
+    phase_g = vec2(0.0, 0.0);
+    phase_b = vec2(0.0, 0.0);
+
     // Record for variable needed in the next iteration
     HitRecord last_hit_record;
     Material last_material;
@@ -904,15 +1168,19 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
     bool last_trans=false;
     vec3 last_wm;
 
-    int depth = 0;
+    int depth = 0, not_half_loss=0;
     while (true) {
         // This is the actual end of the loop
         if (depth > max_depth)
             break;
 
         // Direct lighting
-        if (depth!=0 && scene_settings.enable_direct_lighting && last_type != 2)
-            color_direct = EvaluateDirectLight(last_hit_record, origin, last_material, last_direction, last_wm, P_RR, last_type, color_direct_pdf, last_trans);
+        direct_light_time = 0.0;
+        if (depth != 0 && scene_settings.enable_direct_lighting && last_type != 2){
+            float time;
+            color_direct = EvaluateDirectLight(last_hit_record, origin, last_material, last_direction, last_wm, P_RR, last_type, color_direct_pdf, last_trans, time);
+            direct_light_time = time;
+        }
         else { // No direct light is computed
             color_direct = vec3(0.0);
             color_direct_pdf = 0.0;
@@ -922,6 +1190,18 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         TraceRay(origin, direction);
         // If the ray hits nothing (background), sample from the environment map
         if (ray_payload.t == -1.0) {
+            // direct lighting
+            if (scene_settings.enable_wave_effect) {
+                float arg_1 = indirect_light_time + direct_light_time;
+                uint arg_2 = depth + 1 - not_half_loss;
+                phase_r += accumulated_coef.r * color_direct.r * Time2Vec2(arg_1, arg_2, 0);
+                phase_g += accumulated_coef.g * color_direct.g * Time2Vec2(arg_1, arg_2, 1);
+                phase_b += accumulated_coef.b * color_direct.b * Time2Vec2(arg_1, arg_2, 2);
+                accumulated_color = vec3(length(phase_r), length(phase_g), length(phase_b));
+            }
+            else {
+                accumulated_color += accumulated_coef * color_direct;
+            }
             accumulated_color += EnvmapSample(direction) * accumulated_coef;
             break; // End the loop since we've hit the background
         }
@@ -929,12 +1209,27 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
         // Get the hit record (intersection details, normal, material, etc.)
         HitRecord hit_record = ComposeHitRecord(ray_payload, origin, direction);
         Material material = GetMaterial(hit_record);
+        
+        // Wave Effect
+        if (depth != 0){
+            if (last_trans) {
+                indirect_light_time += ray_payload.t * last_material.ior;
+                not_half_loss += 1;
+            }
+            else indirect_light_time += ray_payload.t;
+        }
 
         // enable volumetric, and the ray will enter a volumetric object
         if (volumetric && outside && material.type == MATERIAL_TYPE_VOLUMETRIC) {
             outside = false;
             origin = hit_record.position; // directly enter the object
             accumulated_color += accumulated_coef * color_direct;
+            last_direction = direction;
+            last_material = material;
+            last_hit_record = hit_record;
+            last_type = 0;
+            last_wm = vec3(0.0);
+            last_trans = false;
             continue;
         }
         // not enable volumetric, or the ray interacts with non-volumetric object
@@ -949,21 +1244,33 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
                     }
                     else accumulated_color += accumulated_coef * color_light;// No direct light case
                 }
-                else accumulated_color += accumulated_coef * color_direct;// Otherwise, only direct light
+                else {
+                    if (scene_settings.enable_wave_effect) {
+                        float arg_1 = indirect_light_time + direct_light_time;
+                        uint arg_2 = depth + 1 - not_half_loss;
+                        phase_r += accumulated_coef.r * color_direct.r * Time2Vec2(arg_1, arg_2, 0);
+                        phase_g += accumulated_coef.g * color_direct.g * Time2Vec2(arg_1, arg_2, 1);
+                        phase_b += accumulated_coef.b * color_direct.b * Time2Vec2(arg_1, arg_2, 2);
+                        accumulated_color = vec3(length(phase_r), length(phase_g), length(phase_b));
+                    }
+                    else {
+                        accumulated_color += accumulated_coef * color_direct;// Otherwise, only direct light
+                    }
+                }
             }
-           
+            
             // Russian Roulette termination condition
             float ksi = RandomFloat();
-            if (ksi > P_RR) break;
+            if (ksi > P_RR && depth > 1) break;
 
             // Multiple importance sampling on the material's BRDF
             vec3 wi, wm;
             bool trans=false;
             uint type = SampleAll(hit_record, material, direction, wm, wi, color_indirect_pdf, trans);
-            // return wi;
+
             // Compute the color for the next bounce
             vec3 color_indirect = EvaluateAll(hit_record, material, direction, wm, wi, P_RR, color_indirect_pdf, type, trans);
-            // return color_indirect;
+
             // Update the ray origin and direction for the next bounce
             last_direction = direction;
             last_material = material;
@@ -976,50 +1283,81 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
             origin = hit_record.position;
             direction = wi;
             accumulated_coef *= color_indirect;
-
+            
             depth++;
         }
         // the ray is in a volumetric object, use volumetric rendering 
-        // no direct lighting, no Russian Roulette
+        // no Russian Roulette
         else {
+            // direct lighting
+            accumulated_color += accumulated_coef * color_direct;
+
             bool terminated = false;
             bool scattered = false;
             // while loop for sampling t in the volumetric object
             while (true) {
-                // the majorant for homogeneous media
-                float sigma_maj = material.sigma_a + material.sigma_s;
+                // the majorant for (in)homogeneous media
+                vec3 sigma_maj = material.sigma_a + material.sigma_s;
 
+                // the pdf when exiting the object
+                vec3 pdf_exit = ChromaticNormalize(exp(-sigma_maj * ray_payload.t));
+                
+                // randomly select a channel
+                uint chan_1 = RandomUint() % 3;
+                
                 // do not set absorption or scattering, directly exit the object
-                if (sigma_maj < 1e-4)
+                if (sigma_maj[chan_1] < 1e-4) {
+                    accumulated_coef *= pdf_exit;
                     break;
+                }
 
                 // sample t using exponential distribution
-                float t_sp = SampleExponential(sigma_maj);
+                float t_sp = SampleExponential(sigma_maj[chan_1]);
+                vec3 sample_point = origin + direction * t_sp;
+
                 // exit the object
-                if (t_sp > ray_payload.t)
+                if (t_sp > ray_payload.t) {
+                    accumulated_coef *= pdf_exit;
                     break;
+                }
+
+                // the pdf when not exiting the object
+                vec3 pdf_maj = ChromaticNormalize(sigma_maj * exp(-sigma_maj * t_sp));
+                accumulated_coef *= pdf_maj;
+                
+                // compute the sigma_a, sigma_s for sampled point
+                vec3 sigma_a = vec3(0.0f);
+                vec3 sigma_s = vec3(0.0f);
+                GetVolPara(material, sample_point, sigma_a, sigma_s);
 
                 // probability for 3 kinds of events
-                float p_absorb = material.sigma_a / sigma_maj;
-                float p_scatter = material.sigma_s / sigma_maj;
-                float p_null = max(1 - p_absorb - p_scatter, 0.0f);
+                vec3 p_absorb = HandleDivide(sigma_a, sigma_maj);
+                vec3 p_scatter = HandleDivide(sigma_s, sigma_maj);
+                vec3 p_null = max(vec3(1.0f) - p_absorb - p_scatter, 0.0f);
                 float u = RandomFloat();
+            
+                uint chan_2 = RandomUint() % 3; // randomly select a channel
                 
                 // emission event, exit the outer loop
-                if (u < p_absorb) {
+                if (u < p_absorb[chan_2]) {
+                    accumulated_coef *= ChromaticNormalize(p_absorb);
                     accumulated_color += accumulated_coef * material.l_e * material.l_e_strength;
                     terminated = true;
                     break;
                 }
                 // scattering event, sample a direction, continue the outer loop
-                else if (u < p_absorb + p_scatter) {
-                    origin = origin + direction * t_sp;
+                else if (u < p_absorb[chan_2] + p_scatter[chan_2]) {
+                    accumulated_coef *= ChromaticNormalize(p_scatter);
+                    origin = sample_point;
                     direction = SampleHG(material.g, direction);
                     scattered = true;
                     break;
                 }
                 // null event, continue sampling t
                 else {
+                    accumulated_coef *= ChromaticNormalize(p_null);
+                    origin = sample_point;
+                    TraceRay(origin, direction);
                     continue;
                 }
             }
@@ -1027,6 +1365,12 @@ vec3 SampleRay(vec3 origin, vec3 direction) {
                 break;
             if (scattered) {
                 depth++;
+                last_direction = direction;
+                last_material = material;
+                last_hit_record = hit_record;
+                last_type = 0;
+                last_wm = vec3(0.0);
+                last_trans = false;
                 continue;
             }
             // exit the object
@@ -1055,7 +1399,7 @@ vec3 GetVelocity(vec3 origin, vec3 direction, out bool env, out vec3 hitpoint) {
 
     // hit environment
     if (ray_payload.t == -1.0) {
-        env = true;
+        env = true; 
         return vec3(0.0);
     }
     // hit object
@@ -1121,32 +1465,69 @@ void main() {
     float tmax = 10000.0;
 
     ray_payload.t = -1.0;
-    vec3 sampled_result = SampleRay(origin, direction);
+    vec2 sample_phase_r = vec2(0.0, 0.0);
+    vec2 sample_phase_g = vec2(0.0, 0.0);
+    vec2 sample_phase_b = vec2(0.0, 0.0);
+    vec3 sampled_result = SampleRay(origin, direction, sample_phase_r, sample_phase_g, sample_phase_b);
 
     sampled_result = clamp(sampled_result, -scene_settings.clamp_value,
                            scene_settings.clamp_value);
 
     vec4 accumulated_radiance = vec4(0.0);
-    float accumulated_weight = 0.0f;
+    vec4 accumulated_weight_image_temp = vec4(0.0);
+    vec4 accumulated_phase_gb = vec4(0.0);
+
     accumulated_radiance =
         imageLoad(accumulated_radiance_image, ivec2(gl_LaunchIDEXT.xy));
-    accumulated_weight =
-        imageLoad(accumulated_weight_image, ivec2(gl_LaunchIDEXT.xy)).r;
+    accumulated_weight_image_temp =
+        imageLoad(accumulated_weight_image, ivec2(gl_LaunchIDEXT.xy));
+    accumulated_phase_gb = 
+        imageLoad(accumulated_phase_gb_image, ivec2(gl_LaunchIDEXT.xy));
+
+    float accumulated_weight = 0.0f;
+    vec2 acc_phase_r = vec2(0.0);
+    vec2 acc_phase_g = vec2(0.0);
+    vec2 acc_phase_b = vec2(0.0);
+    
+    accumulated_weight = accumulated_weight_image_temp.r;
+    acc_phase_r.x = accumulated_weight_image_temp.g;
+    acc_phase_r.y = accumulated_weight_image_temp.b;
+    acc_phase_g.x = accumulated_phase_gb.r;
+    acc_phase_g.y = accumulated_phase_gb.g;
+    acc_phase_b.x = accumulated_phase_gb.b;
+    acc_phase_b.y = accumulated_phase_gb.a;
 
     accumulated_radiance *= scene_settings.persistence;
     accumulated_weight *= scene_settings.persistence;
+    acc_phase_r *= scene_settings.persistence;
+    acc_phase_g *= scene_settings.persistence;
+    acc_phase_b *= scene_settings.persistence;
 
     if (isnan(accumulated_weight) || isnan(accumulated_radiance.r) ||
         isnan(accumulated_radiance.g) || isnan(accumulated_radiance.b) ||
-        isnan(accumulated_radiance.a)) {
-      accumulated_weight = 0.0;
+        isnan(accumulated_radiance.a) || isnan(acc_phase_r.x) || isnan(acc_phase_r.y) ||
+        isnan(acc_phase_g.x) || isnan(acc_phase_g.y) || isnan(acc_phase_b.x) || isnan(acc_phase_b.y)) {
       accumulated_radiance = vec4(0.0);
+      accumulated_weight = 0.0;
+      acc_phase_r = vec2(0.0);
+      acc_phase_g = vec2(0.0);
+      acc_phase_b = vec2(0.0);
     }
-
-    accumulated_radiance += vec4(sampled_result, 1.0);
-    accumulated_weight += 1.0f;
+    if (scene_settings.enable_wave_effect) {
+        acc_phase_r.x += sampled_result.r * GetCos(sample_phase_r);
+        acc_phase_r.y += sampled_result.r * GetSin(sample_phase_r);
+        acc_phase_g.x += sampled_result.g * GetCos(sample_phase_g);
+        acc_phase_g.y += sampled_result.g * GetSin(sample_phase_g);
+        acc_phase_b.x += sampled_result.b * GetCos(sample_phase_b);
+        acc_phase_b.y += sampled_result.b * GetSin(sample_phase_b);
+        accumulated_radiance = vec4(length(acc_phase_r), length(acc_phase_g), length(acc_phase_b), 1.0);
+    }
+    else accumulated_radiance += vec4(sampled_result, 1.0);
+    accumulated_weight += 1.0; 
 
     vec4 raw_result = accumulated_radiance / accumulated_weight;
+
+    //raw_result = vec4(length(accumulated_phase) / accumulated_weight, 0.0, 0.0, 1.0);
 
     vec4 resolved_result = pow(scene_settings.exposure * raw_result,
                                vec4(1.0 / scene_settings.gamma));
@@ -1156,7 +1537,9 @@ void main() {
     imageStore(accumulated_radiance_image, ivec2(gl_LaunchIDEXT.xy),
                accumulated_radiance);
     imageStore(accumulated_weight_image, ivec2(gl_LaunchIDEXT.xy),
-               vec4(accumulated_weight));
+               vec4(accumulated_weight, acc_phase_r.x, acc_phase_r.y, 1.0f));
+    imageStore(accumulated_phase_gb_image, ivec2(gl_LaunchIDEXT.xy),
+               vec4(acc_phase_g.x, acc_phase_g.y, acc_phase_b.x, acc_phase_b.y));
     imageStore(raw_result_image, ivec2(gl_LaunchIDEXT.xy), raw_result);
   }
 }

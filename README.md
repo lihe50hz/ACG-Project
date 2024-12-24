@@ -98,11 +98,11 @@
 
   3. Channel-independent subsurface scattering (1pt)
 
-     > registered by Chenglin Liu.
+     > Chenglin Liu has implemented this.
 
   4. Inhomogeneous volume rendering (1pt)
 
-     > registered by Chenglin Liu.
+     > Chenglin Liu has implemented this.
 
   5. Volumetric emission (1pt)
 
@@ -110,7 +110,7 @@
 
   6. Volumetric alpha shadow (2pts)
 
-     > registered by Chenglin Liu.
+     > Chenglin Liu has implemented this.
 
 - Special Visual Effects: Options include:
 
@@ -147,6 +147,28 @@
 - Simulation-based content creation: Up to 2pts
 
   > Waiting for register.
+
+- Rendering Wave Effect of Light:
+  
+  1. Implement Poynting-based Light Transport for Interference (2pts)
+
+     > He Li has implemented this.
+
+  2. Implement Channel-independent Wave Effect (1pt)
+
+     > Chenglin Liu has implemented this.
+
+  3. Support Advanced Light Source (Parallel Area Light Source, Line Light Source, 1pt each)
+
+     > Chenglin Liu has implemented parallel area light source.
+
+  4. Support Non-air Material (Transmissive Wave Effect) (1pt)
+
+     > He Li has implemented this.
+
+  5. Support Diffraction (Special Slit Material or Mimicing the Width of Light) (2pts)
+
+     > Waiting for register.
 
 ## Acknowledgement
 

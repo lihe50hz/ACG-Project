@@ -506,6 +506,10 @@ ImVec2 Application::ImGuiSettingsWindow() {
         ImGui::Checkbox("Volumetric Rendering",
                         reinterpret_cast<bool *>(
                             &editing_scene_settings_.enable_volumetric_rendering));
+    render_settings_changed_ |= ImGui::Checkbox(
+        "Wave Effect",
+        reinterpret_cast<bool *>(
+            &editing_scene_settings_.enable_wave_effect));
     scene_->SetSceneSettings(editing_scene_settings_);
   }
   if (ImGui::CollapsingHeader("Environment Map Settings")) {
@@ -532,10 +536,10 @@ ImVec2 Application::ImGuiSettingsWindow() {
           asset_manager_->ComboForMeshSelection("Mesh", &metadata.mesh_id);
 
       const char *material_type_names[] = {"Lambertian", "Specular",
-                                           "Principled", "Volumetric", "Pointlight"};
+          "Principled", "Volumetric", "Pointlight", "ParallelLight"};
       render_settings_changed_ |=
           ImGui::Combo("Material Type", reinterpret_cast<int *>(&material.type),
-                       material_type_names, 5);
+                       material_type_names, 6);
 
       render_settings_changed_ |=
           ImGui::ColorEdit3("Base Color", &material.base_color.r);
@@ -543,6 +547,8 @@ ImVec2 Application::ImGuiSettingsWindow() {
           "Base Color Texture", &metadata.albedo_texture_id);
       render_settings_changed_ |= asset_manager_->ComboForTextureSelection(
           "Detail Texture", &metadata.albedo_detail_texture_id);
+      render_settings_changed_ |= asset_manager_->ComboForTextureSelection(
+          "Normal Texture", &metadata.normal_texture_id);
       render_settings_changed_ |= ImGui::SliderFloat2(
           "Detail Scale", &metadata.detail_scale_offset.x, 0.0001f, 10000.0f,
           "%.4f", ImGuiSliderFlags_Logarithmic);
@@ -591,7 +597,8 @@ ImVec2 Application::ImGuiSettingsWindow() {
       render_settings_changed_ |=
           ImGui::ColorEdit3("Emission", &material.emission.r);
       render_settings_changed_ |= ImGui::SliderFloat(
-          "Emission Strength", &material.emission_strength, 0.0f, 100.0f);
+          "Emission Strength", &material.emission_strength, 0.0f, 500.0f,
+          "%.2f", ImGuiSliderFlags_Logarithmic);
 
       render_settings_changed_ |=
           ImGui::SliderFloat("Alpha", &material.alpha, 0.0f, 1.0f);
@@ -601,28 +608,36 @@ ImVec2 Application::ImGuiSettingsWindow() {
             ImGui::ColorEdit3("Volumetric Emission", &material.l_e.r);
         render_settings_changed_ |=
             ImGui::SliderFloat("Volumetric Emission Strength", &material.l_e_strength, 0.0f, 5.0f);
-        render_settings_changed_ |=
-            ImGui::SliderFloat("Absorption", &material.sigma_a, 0.0f, 0.1f);
-        render_settings_changed_ |=
-            ImGui::SliderFloat("Scattering", &material.sigma_s, 0.0f, 0.1f);
+        render_settings_changed_ |= ImGui::SliderFloat3(
+            "Absorption", &material.sigma_a.x, 0.0f, 0.1f, "%.3f");
+        render_settings_changed_ |= ImGui::SliderFloat3(
+            "Scattering", &material.sigma_s.x, 0.0f, 0.1f, "%.3f");
         render_settings_changed_ |=
             ImGui::SliderFloat("Asymmetry", &material.g, -1.0f, 1.0f);
+        
+        const char *volumetric_type_names[] = {"Homogeneous", "Centralized Inhomogenous"};
+        render_settings_changed_ |=
+            ImGui::Combo("Volumetric Type", reinterpret_cast<int *>(&material.volumetric_type),
+                        volumetric_type_names, 2);
+        
+        if (material.volumetric_type == 1) {
+          render_settings_changed_ |=
+            ImGui::SliderFloat("Centralized Decay", &material.center_decay, 0.0f, 0.1f);
+        }
       }
 
       scene_->SetEntityMaterial(selected_instances_[0], material);
       scene_->SetEntityMetadata(selected_instances_[0], metadata);
     }
   }
+  
+  static char save_path[256] = "D:\\50hz\\Tsinghua\\Thrid_year-Autumn\\ACG\\project\\final\\Tyndall.png";  // Ĭ��·��
 
-  static char save_path[256] = "D:\\UserFiles\\Tsinghua\\2024FallGrade3\\ACG\\project\\3.png";  // Ĭ��·��
-
-  // �����������ָ��·��
   ImGui::InputText("Save Path", save_path, IM_ARRAYSIZE(save_path));
 
-  // ���ϱ��水ť
   if (ImGui::Button("Save Rendered Image")) {
-    save_image_ = true;  // ���ñ�־λ��֪ͨOnRender�����ļ�
-    save_image_path_ = std::string(save_path);  // ���ñ���·��
+    save_image_ = true;
+    save_image_path_ = std::string(save_path);
   }
 
   ImGui::End();

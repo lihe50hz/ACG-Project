@@ -6,6 +6,10 @@
 #define MATERIAL_TYPE_PRINCIPLED 2
 #define MATERIAL_TYPE_VOLUMETRIC 3
 #define MATERIAL_TYPE_POINTLIGHT 4
+#define MATERIAL_TYPE_PARALLELLIGHT 5
+
+#define VOLUMETRIC_TYPE_HOMOGENEOUS 0
+#define VOLUMETRIC_TYPE_CENTRALIZED 1
 
 struct Material {
   vec3 base_color;
@@ -40,12 +44,21 @@ struct Material {
 
   vec3 l_e;
   float l_e_strength;
-  float sigma_a;
-  float sigma_s;
+  vec3 sigma_a;
   float g;
+  vec3 sigma_s;
+
+  uint volumetric_type;
+  vec3 volumetric_center;
+  float center_decay;
   
   vec3 velocity;
+
+  float thin;
+
   vec3 center;
+  float radius;
+  vec3 direction;
 };
 
 #endif
