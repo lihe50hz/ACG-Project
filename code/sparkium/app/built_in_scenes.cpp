@@ -8,11 +8,11 @@ namespace sparkium {
 std::vector<std::pair<std::string, std::function<void(Scene *scene)>>>
 BuiltInSceneList() {
   return {
+      {"Interference Box", LoadInterferenceBox},
+      {"Cornell Box", LoadCornellBox},
       {"Tyndall Effect", LoadTyndall},
       {"Interference", LoadInterference},
       {"Living Room Scene", LoadLivingScene},
-      {"Interference Box", LoadInterferenceBox},
-      {"Cornell Box", LoadCornellBox},
   };
 }
 
@@ -176,7 +176,7 @@ void LoadCornellBox(Scene *scene) {
   // <index value = "16" /><index value = "17" /><index value = "19" />
   // <index value = "17" /><index value = "18" /> <index value = "19" />
 
-  /*indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
+  indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
              9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21,
   23, 21, 22, 23}; vertices.clear(); vertices.push_back(make_vertex({130.0f,
   165.0f, 65.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({82.0f, 165.0f,
@@ -208,7 +208,7 @@ void LoadCornellBox(Scene *scene) {
   short_box_material.base_color = {0.8f, 0.8f, 0.8f};
   int short_box_id = scene->CreateEntity();
   scene->SetEntityMesh(short_box_id, short_box_mesh_id);
-  scene->SetEntityMaterial(short_box_id, short_box_material);*/
+  scene->SetEntityMaterial(short_box_id, short_box_material);
 
   // box 2
   /*indices = {0,  1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,
@@ -305,7 +305,7 @@ void LoadCornellBox(Scene *scene) {
   // <index value="18"/>
   // <index value="19"/>
 
-  /*indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
+  indices = {0, 1,  3,  1,  2,  3,  4,  5,  7,  5,  6,  7,  8,  9,  11,
              9, 10, 11, 12, 13, 15, 13, 14, 15, 16, 17, 19, 17, 18, 19, 20, 21,
   23, 21, 22, 23}; vertices.clear(); vertices.push_back(make_vertex({423.0f,
   330.0f, 247.0f}, {0.0f, 0.0f})); vertices.push_back(make_vertex({265.0f,
@@ -339,7 +339,7 @@ void LoadCornellBox(Scene *scene) {
   tall_box_material.base_color = {0.8f, 0.8f, 0.8f};
   int tall_box_id = scene->CreateEntity();
   scene->SetEntityMesh(tall_box_id, tall_box_mesh_id);
-  scene->SetEntityMaterial(tall_box_id, tall_box_material);*/
+  scene->SetEntityMaterial(tall_box_id, tall_box_material);
   /*
   Mesh longma;
   longma.LoadObjFile(FindAssetsFile("mesh/longma.obj"));
@@ -1158,13 +1158,13 @@ void LoadLivingScene(Scene *scene) {
   // Television Center
   int televisioncenter_id = scene->CreateEntity();
 
-  /*Texture televisioncenter_texture;
+  Texture televisioncenter_texture;
   televisioncenter_texture.LoadFromFile(
       FindAssetsFile("texture/living/486.jpg"),
       LDRColorSpace::UNORM);
   auto televisioncenter_texture_id = asset_manager->LoadTexture(
       televisioncenter_texture, "TelevisionTexture");
-  scene->SetEntityAlbedoTexture(televisioncenter_id,
+  /* scene->SetEntityAlbedoTexture(televisioncenter_id,
                                 televisioncenter_texture_id);*/
 
   Mesh televisioncenter_mesh;
